@@ -1,0 +1,597 @@
+/* ─── Editor CSS ─── */
+
+/* 1. Container */
+.editor-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: hsl(240, 8%, 11%);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* 2. Unified Header Bar — auto height so toolbar rows can expand */
+.editor-header {
+  flex-shrink: 0;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  background: hsla(240, 12%, 9%, 0.97);
+  border-bottom: 1px solid hsla(240, 100%, 100%, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  -webkit-app-region: drag;
+  z-index: 50;
+
+  /* Force dark theme tokens for the always-dark header */
+  --text-main: hsl(240, 14%, 96%);
+  --text-muted: hsl(240, 7%, 63%);
+  --border-subtle: hsla(240, 100%, 100%, 0.06);
+  --toolbar-btn-hover: hsla(240, 100%, 100%, 0.09);
+  --toolbar-btn-active: hsla(240, 100%, 100%, 0.14);
+  --toolbar-btn-selected: hsla(240, 100%, 100%, 0.17);
+  color: hsl(240, 14%, 96%);
+}
+
+.editor-header-center {
+  flex: 1;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+}
+
+.editor-header-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 0 12px;
+  -webkit-app-region: no-drag;
+}
+
+.header-divider {
+  width: 1px;
+  height: 20px;
+  background: hsla(240, 100%, 100%, 0.09);
+  margin: 0 4px;
+}
+
+/* Action & Feature buttons — always light-on-dark */
+.editor-action-btn,
+.editor-feature-btn {
+  background: hsla(240, 100%, 100%, 0.07);
+  border: 1px solid hsla(240, 100%, 100%, 0.11);
+  color: hsla(240, 14%, 96%, 0.88);
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.16s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.editor-action-btn:hover:not(:disabled),
+.editor-feature-btn:hover:not(:disabled) {
+  background: hsla(240, 100%, 100%, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+
+.editor-action-btn:active:not(:disabled),
+.editor-feature-btn:active:not(:disabled) {
+  transform: scale(0.96);
+  box-shadow: none;
+}
+
+.editor-action-btn.primary {
+  background: hsl(211, 100%, 50%);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 12px hsla(211, 100%, 50%, 0.4);
+}
+
+.editor-action-btn.primary:hover {
+  background: hsl(211, 100%, 44%);
+  box-shadow: 0 4px 16px hsla(211, 100%, 50%, 0.55);
+}
+
+.editor-feature-btn.active {
+  background: hsla(211, 100%, 50%, 0.18);
+  border-color: hsla(211, 100%, 70%, 0.35);
+  color: hsl(200, 100%, 80%);
+}
+
+/* 3. Toolbar — column wrapper allows two rows */
+.toolbar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* Row 1: main tool icons + undo/redo */
+.toolbar-row-main {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px;
+}
+
+.toolbar-tools {
+  display: flex;
+  gap: 1px;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 1px;
+}
+
+.divider-vertical {
+  width: 1px;
+  height: 22px;
+  background: hsla(240, 100%, 100%, 0.09);
+  margin: 0 6px;
+}
+
+.toolbar-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 35px;
+  height: 35px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.14s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  padding: 0;
+  box-shadow: none;
+  position: relative;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background: var(--toolbar-btn-hover);
+  color: var(--text-main);
+  transform: scale(1.1);
+  box-shadow: none;
+}
+
+.toolbar-btn:active:not(:disabled) {
+  background: var(--toolbar-btn-active);
+  transform: scale(0.91);
+}
+
+.toolbar-btn.active {
+  background: var(--toolbar-btn-selected);
+  color: var(--text-main);
+  box-shadow: inset 0 0 0 1px hsla(240, 100%, 100%, 0.1);
+}
+
+/* Active indicator dot */
+.toolbar-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: hsl(211, 100%, 65%);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Row 2: Emoji picker — full-width second row below the tools */
+.toolbar-row-emoji {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px 6px;
+  border-top: 1px solid hsla(240, 100%, 100%, 0.05);
+  animation: emojiRowIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes emojiRowIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.toolbar-emoji-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(240, 7%, 50%);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.toolbar-emoji-picker {
+  display: flex;
+  gap: 2px;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.toolbar-emoji-picker::-webkit-scrollbar { display: none; }
+
+.toolbar-emoji-btn {
+  background: transparent;
+  border: none;
+  font-size: 17px;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+  line-height: 1;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.toolbar-emoji-btn:hover {
+  background: var(--toolbar-btn-hover);
+  transform: scale(1.2);
+}
+
+.toolbar-emoji-btn.selected {
+  background: var(--toolbar-btn-selected);
+  box-shadow: inset 0 0 0 1px hsla(240, 100%, 100%, 0.15);
+  transform: scale(1.1);
+}
+
+/* 4. Property Bar */
+.editor-property-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  background: hsla(240, 12%, 12%, 0.96);
+  border-bottom: 1px solid hsla(240, 100%, 100%, 0.05);
+  gap: 16px;
+  z-index: 40;
+  -webkit-app-region: no-drag;
+  animation: slideDown 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  --text-main: hsl(240, 14%, 96%);
+  --text-muted: hsl(240, 7%, 63%);
+  --border-subtle: hsla(240, 100%, 100%, 0.08);
+  color: hsl(240, 14%, 96%);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.property-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.property-group span {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  color: hsl(240, 7%, 58%);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.color-picker {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.color-swatch {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 1.5px solid hsla(240, 100%, 100%, 0.12);
+  cursor: pointer;
+  transition: all 0.14s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  padding: 0;
+}
+
+.color-swatch:hover {
+  transform: scale(1.25);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.color-swatch.active {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px hsla(240, 100%, 100%, 0.25), 0 2px 8px rgba(0,0,0,0.3);
+  transform: scale(1.25);
+}
+
+.range-slider {
+  width: 80px;
+  accent-color: hsl(211, 100%, 50%);
+}
+
+/* 5. Canvas */
+.editor-canvas-wrapper {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: hsl(240, 8%, 11%);
+  overflow: hidden;
+}
+
+.canvas-container {
+  margin: 0 auto;
+}
+
+/* 6. Floating Panels — Glassmorphism */
+.floating-panel {
+  position: absolute;
+  top: 58px;
+  right: 16px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(60px) saturate(2.2);
+  -webkit-backdrop-filter: blur(60px) saturate(2.2);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow:
+    0 0 0 0.5px hsla(240, 100%, 100%, 0.08),
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 200;
+  color: var(--text-main);
+  min-width: 300px;
+  max-width: 380px;
+  animation: springIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  -webkit-app-region: no-drag;
+}
+
+@keyframes springIn {
+  0%   { opacity: 0; transform: scale(0.88) translateY(-8px); }
+  60%  { opacity: 1; transform: scale(1.025) translateY(2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.floating-panel h3 {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.editor-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: hsl(240, 7%, 55%);
+  font-size: 14px;
+}
+
+/* 7. Panel Shared Elements */
+.ocr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+.icon-button-sm {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 0;
+}
+
+.icon-button-sm:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger-hover);
+  color: var(--danger-color);
+  transform: scale(1.12);
+}
+
+.ocr-empty p, .ocr-loading p {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.ocr-hint {
+  font-size: 11px !important;
+  opacity: 0.7;
+}
+
+.ocr-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid var(--btn-border);
+  border-top-color: hsl(211, 100%, 50%);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  margin: 0 auto 12px;
+}
+
+.ocr-run-btn, .ocr-copy-btn, .apply-btn {
+  background: var(--bg-solid);
+  color: var(--text-main);
+  border: 1px solid var(--btn-border);
+  border-radius: 9px;
+  padding: 10px 14px;
+  width: 100%;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.ocr-run-btn:hover:not(:disabled), 
+.ocr-copy-btn:hover:not(:disabled), 
+.apply-btn:hover:not(:disabled) {
+  background: var(--btn-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.ocr-result {
+  margin-top: 16px;
+}
+
+.ocr-text {
+  background: var(--bg-translucent);
+  padding: 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 14px;
+  line-height: 1.55;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+/* 8. Beautifier Presets (legacy - now handled by beautifier.css) */
+.beautifier-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.preset-btn {
+  background: var(--bg-solid);
+  border: 1.5px solid var(--btn-border);
+  padding: 9px 10px;
+  border-radius: 9px;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.14s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.preset-btn:hover {
+  background: var(--btn-hover);
+  transform: translateY(-1px);
+}
+
+.preset-btn:active {
+  transform: scale(0.96);
+}
+
+.preset-btn.active {
+  background: var(--btn-active);
+  border-color: hsl(211, 100%, 50%);
+  box-shadow: 0 0 0 1px hsl(211, 100%, 50%);
+}
+
+/* 9. Redact Panel */
+.redact-panel {
+  min-width: 280px;
+}
+
+.redact-summary {
+  margin-bottom: 12px;
+}
+
+.redact-badge {
+  background: var(--danger-bg);
+  color: var(--danger-color);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.redact-list {
+  max-height: 240px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
+}
+
+.redact-group {
+  margin-bottom: 10px;
+}
+
+.redact-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.redact-group-count {
+  background: var(--btn-bg);
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.redact-item {
+  padding: 4px 8px;
+  margin-bottom: 2px;
+  border-radius: 6px;
+  background: var(--btn-bg);
+}
+
+.redact-value {
+  font-size: 12px;
+  color: var(--danger-color);
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.redact-clean {
+  text-align: center;
+  padding: 16px 0;
+}
+
+/* Shared spin animation referenced by multiple panels */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

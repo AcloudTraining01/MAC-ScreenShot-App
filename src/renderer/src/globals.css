@@ -1,0 +1,359 @@
+:root {
+  /* ── Accent ──────────────────────────────── */
+  --accent: hsl(211, 100%, 50%);
+  --accent-hover: hsl(211, 100%, 42%);
+  --accent-rgb: 0, 122, 255;
+  --accent-glow: 0 4px 20px hsla(211, 100%, 50%, 0.4);
+
+  /* ── Glass / Blur ────────────────────────── */
+  --glass-blur: blur(40px) saturate(1.8);
+  --glass-blur-heavy: blur(60px) saturate(2.2);
+
+  /* ── Light Theme ─────────────────────────── */
+  --bg-translucent: hsla(240, 20%, 98%, 0.85);
+  --bg-solid: hsl(240, 20%, 99%);
+  --panel-bg: hsla(240, 20%, 98%, 0.88);
+  --panel-border: hsla(240, 10%, 0%, 0.08);
+  --border-subtle: hsla(240, 10%, 0%, 0.04);
+
+  --text-main: hsl(240, 5%, 10%);
+  --text-muted: hsl(240, 4%, 52%);
+
+  --btn-bg: hsla(240, 10%, 0%, 0.03);
+  --btn-border: hsla(240, 10%, 0%, 0.08);
+  --btn-hover: hsla(240, 10%, 0%, 0.06);
+  --btn-active: hsla(240, 10%, 0%, 0.10);
+
+  --shadow-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  --shadow-elevation: 0 24px 64px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.04);
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  --danger-color: hsl(3, 100%, 59%);
+  --danger-bg: hsla(3, 100%, 59%, 0.10);
+  --danger-hover: hsla(3, 100%, 59%, 0.18);
+
+  --warning-color: hsl(36, 100%, 52%);
+  --warning-bg: hsla(36, 100%, 52%, 0.10);
+  --warning-hover: hsla(36, 100%, 52%, 0.18);
+
+  --success-color: hsl(142, 71%, 45%);
+  --success-bg: hsla(142, 71%, 45%, 0.10);
+
+  --toolbar-btn-hover: hsla(240, 10%, 0%, 0.05);
+  --toolbar-btn-active: hsla(240, 10%, 0%, 0.09);
+  --toolbar-btn-selected: hsla(240, 10%, 0%, 0.08);
+}
+
+/* ── System Dark Mode ────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-translucent: hsla(240, 12%, 11%, 0.88);
+    --bg-solid: hsl(240, 10%, 11%);
+    --panel-bg: hsla(250, 15%, 14%, 0.92);
+    --panel-border: hsla(240, 100%, 100%, 0.10);
+    --border-subtle: hsla(240, 100%, 100%, 0.05);
+
+    --text-main: hsl(240, 14%, 96%);
+    --text-muted: hsl(240, 7%, 63%);
+
+    --btn-bg: hsla(240, 100%, 100%, 0.06);
+    --btn-border: hsla(240, 100%, 100%, 0.10);
+    --btn-hover: hsla(240, 100%, 100%, 0.12);
+    --btn-active: hsla(240, 100%, 100%, 0.18);
+
+    --shadow-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    --shadow-elevation: 0 24px 80px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.3);
+    --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+
+    --danger-color: hsl(3, 100%, 62%);
+    --danger-bg: hsla(3, 100%, 62%, 0.15);
+    --danger-hover: hsla(3, 100%, 62%, 0.25);
+
+    --warning-color: hsl(48, 100%, 52%);
+    --warning-bg: hsla(48, 100%, 52%, 0.15);
+    --warning-hover: hsla(48, 100%, 52%, 0.25);
+
+    --success-color: hsl(142, 71%, 52%);
+    --success-bg: hsla(142, 71%, 52%, 0.15);
+
+    --toolbar-btn-hover: hsla(240, 100%, 100%, 0.08);
+    --toolbar-btn-active: hsla(240, 100%, 100%, 0.12);
+    --toolbar-btn-selected: hsla(240, 100%, 100%, 0.15);
+  }
+}
+
+/* ── Manual dark override via JS (time-based / user pref) ── */
+:root[data-theme="dark"] {
+  --bg-translucent: hsla(240, 12%, 11%, 0.88);
+  --bg-solid: hsl(240, 10%, 11%);
+  --panel-bg: hsla(250, 15%, 14%, 0.92);
+  --panel-border: hsla(240, 100%, 100%, 0.10);
+  --border-subtle: hsla(240, 100%, 100%, 0.05);
+
+  --text-main: hsl(240, 14%, 96%);
+  --text-muted: hsl(240, 7%, 63%);
+
+  --btn-bg: hsla(240, 100%, 100%, 0.06);
+  --btn-border: hsla(240, 100%, 100%, 0.10);
+  --btn-hover: hsla(240, 100%, 100%, 0.12);
+  --btn-active: hsla(240, 100%, 100%, 0.18);
+
+  --shadow-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-elevation: 0 24px 80px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.3);
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+
+  --danger-color: hsl(3, 100%, 62%);
+  --danger-bg: hsla(3, 100%, 62%, 0.15);
+  --danger-hover: hsla(3, 100%, 62%, 0.25);
+
+  --warning-color: hsl(48, 100%, 52%);
+  --warning-bg: hsla(48, 100%, 52%, 0.15);
+  --warning-hover: hsla(48, 100%, 52%, 0.25);
+
+  --success-color: hsl(142, 71%, 52%);
+  --success-bg: hsla(142, 71%, 52%, 0.15);
+
+  --toolbar-btn-hover: hsla(240, 100%, 100%, 0.08);
+  --toolbar-btn-active: hsla(240, 100%, 100%, 0.12);
+  --toolbar-btn-selected: hsla(240, 100%, 100%, 0.15);
+}
+
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Preview Window ────────────────────────────────────── */
+.preview-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-translucent);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-inset), var(--shadow-elevation);
+  color: var(--text-main);
+  overflow: hidden;
+  -webkit-app-region: drag;
+}
+
+.preview-container.loading {
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-text {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.preview-header {
+  flex-shrink: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.preview-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.icon-button {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  color: var(--text-muted);
+  font-size: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  -webkit-app-region: no-drag;
+}
+
+.icon-button:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger-hover);
+  color: var(--danger-color);
+  transform: scale(1.08);
+}
+
+.icon-button:active {
+  transform: scale(0.95);
+}
+
+.preview-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  overflow: hidden;
+  -webkit-app-region: no-drag;
+  min-height: 0;
+  background: transparent;
+}
+
+.preview-content img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--panel-border), var(--shadow-panel);
+  display: block;
+}
+
+.preview-footer {
+  flex-shrink: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 20px;
+  gap: 12px;
+  border-top: 1px solid var(--border-subtle);
+  -webkit-app-region: no-drag;
+  background: hsla(0, 0%, 0%, 0.02);
+}
+
+@media (prefers-color-scheme: dark) {
+  .preview-footer {
+    background: hsla(0, 0%, 100%, 0.02);
+  }
+}
+
+:root[data-theme="dark"] .preview-footer {
+  background: hsla(0, 0%, 100%, 0.02);
+}
+
+/* ─── Global Button Styles ──────────────────────────────── */
+button {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  color: var(--text-main);
+  padding: 8px 18px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  -webkit-app-region: no-drag;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+button:hover:not(:disabled) {
+  background: var(--btn-hover);
+  border-color: var(--btn-border);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  background: var(--btn-active);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: white;
+  font-weight: 600;
+  box-shadow: var(--accent-glow);
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 6px 20px hsla(211, 100%, 50%, 0.5);
+}
+
+button.secondary {
+  background: var(--warning-bg);
+  border-color: var(--warning-hover);
+  color: var(--warning-color);
+  font-weight: 600;
+}
+
+button.secondary:hover:not(:disabled) {
+  background: var(--warning-hover);
+  border-color: var(--warning-color);
+}
+
+button.danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--danger-color);
+  box-shadow: none;
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+  border-color: var(--danger-hover);
+  color: var(--danger-color);
+  box-shadow: none;
+}
+
+/* ─── Global Animations ─────────────────────────────────── */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes springIn {
+  0%   { opacity: 0; transform: scale(0.88) translateY(-6px); }
+  60%  { opacity: 1; transform: scale(1.03) translateY(2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
