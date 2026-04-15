@@ -1,0 +1,81 @@
+name: Build macOS Installer
+
+# ── Trigger ───────────────────────────────────────────────
+# Runs automatically when a new Release is published on GitHub.
+# To create a release: GitHub → Releases → "Draft a new release"
+# → set a tag like v1.0.0 → Publish release.
+on:
+  release:
+    types: [published]
+
+  # Also allow manual runs from the GitHub Actions tab
+  workflow_dispatch:
+
+# ── Permissions ───────────────────────────────────────────
+permissions:
+  contents: write   # needed to upload release assets
+
+# ── Job ───────────────────────────────────────────────────
+jobs:
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest   # Apple Silicon runner (arm64 native)
+
+    steps:
+      # 1. Check out the repo
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js 20 (LTS)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Install dependencies (clean install, no scripts)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Build — electron-vite compiles TS → JS, then electron-builder
+      #    packages the app into a .dmg and .zip for both arm64 + x64
+      - name: Build macOS installer
+        env:
+          # GitHub token so electron-builder can upload artifacts to the release
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Skip code signing in CI (unsigned DMG still installs fine for testing)
+          # To enable signing: add CSC_LINK and CSC_KEY_PASSWORD secrets
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npm run build:mac
+
+      # 5. Upload the .dmg files to the GitHub Release as downloadable assets
+      - name: Upload DMG (arm64)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 6. Upload the .zip files (used by auto-updater)
+      - name: Upload ZIP (for auto-update)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 7. Upload blockmap files (used by electron-updater for delta updates)
+      - name: Upload blockmap files
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*.blockmap
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 8. Upload latest-mac.yml (auto-update metadata)
+      - name: Upload update metadata
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/latest-mac.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
