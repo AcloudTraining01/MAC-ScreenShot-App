@@ -81,7 +81,7 @@ export function createTray(onCapture: () => void, onOpenLibrary?: () => void): T
         dialog.showMessageBox({
           type: 'info',
           title: 'About SnapForge',
-          message: 'SnapForge v1.0.0',
+          message: 'SnapForge v1.0.1',
           detail:
             'Premium screenshot utility for macOS.\n\nShortcut: ⌘+Shift+4\nOr click the menu bar icon.\n\n© 2026 kingsleyasah',
           buttons: ['OK']
