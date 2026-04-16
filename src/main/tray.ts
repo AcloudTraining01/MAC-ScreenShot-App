@@ -4,25 +4,54 @@ import { existsSync } from 'fs';
 
 let tray: Tray | null = null;
 
+/**
+ * Creates the tray icon as a macOS template image.
+ *
+ * Template images must be:
+ *  - White/black pixels only on a transparent background.
+ *  - Paired: `iconTemplate.png` (22×22) + `iconTemplate@2x.png` (44×44).
+ *  - Named with the word "Template" in the filename (Electron convention).
+ *
+ * macOS will automatically adapt the icon color to match the menu bar
+ * (white in dark mode, black in light mode) when `setTemplateImage(true)`.
+ */
 function createTrayIcon(): Electron.NativeImage {
-  const iconPath = app.isPackaged
-    ? join(process.resourcesPath, 'trayIconTemplate.png')
-    : join(__dirname, '../../resources/trayIconTemplate.png');
+  const resourcesPath = app.isPackaged
+    ? process.resourcesPath
+    : join(__dirname, '../../resources');
 
-  console.log('[Tray] Icon path:', iconPath);
-  console.log('[Tray] File exists:', existsSync(iconPath));
+  const icon1xPath = join(resourcesPath, 'trayIconTemplate.png');
+  const icon2xPath = join(resourcesPath, 'trayIconTemplate@2x.png');
+
+  console.log('[Tray] Resources path:', resourcesPath);
+  console.log('[Tray] 1x icon path:', icon1xPath, '| exists:', existsSync(icon1xPath));
+  console.log('[Tray] 2x icon path:', icon2xPath, '| exists:', existsSync(icon2xPath));
+
+  // Prefer the @2x image (44×44) — Electron/macOS automatically uses it on
+  // Retina displays and scales it to 22pt. This gives the sharpest result.
+  const iconPath = existsSync(icon2xPath) ? icon2xPath : icon1xPath;
+
+  if (!existsSync(iconPath)) {
+    console.warn('[Tray] No icon file found at', iconPath);
+    // Return an empty image as last resort so Tray() doesn't throw.
+    return nativeImage.createEmpty();
+  }
 
   const img = nativeImage.createFromPath(iconPath);
 
-  if (!img.isEmpty()) {
-    const resized = img.resize({ width: 22, height: 22 });
-    resized.setTemplateImage(true);
-    return resized;
+  if (img.isEmpty()) {
+    console.warn('[Tray] nativeImage loaded empty from', iconPath);
+    return nativeImage.createEmpty();
   }
 
-  // Fallback: create a minimal empty image so Tray doesn't crash
-  console.warn('[Tray] Icon image empty, using fallback.');
-  return nativeImage.createEmpty();
+  // Resize to 22×22 pt (the @2x file is 44px wide but represents 22pt)
+  const resized = img.resize({ width: 22, height: 22 });
+
+  // Mark as template so macOS auto-adapts the color to light/dark menu bar
+  resized.setTemplateImage(true);
+
+  console.log('[Tray] Icon loaded successfully — size:', img.getSize());
+  return resized;
 }
 
 export function createTray(onCapture: () => void, onOpenLibrary?: () => void): Tray {
@@ -71,12 +100,11 @@ export function createTray(onCapture: () => void, onOpenLibrary?: () => void): T
 
   tray.setToolTip('SnapForge — Click to capture');
 
-  // ── Key macOS behavior fix ──
-  // On macOS, `setContextMenu` makes left-click ALSO open the menu.
-  // Instead, we handle left-click manually to trigger capture,
-  // and only show the context menu on right-click.
+  // ── Key macOS behavior ──────────────────────────────────────────────────
+  // Left-click → trigger capture immediately.
+  // Right-click → show context menu.
   //
-  // DO NOT call tray.setContextMenu() — that hijacks left-click.
+  // DO NOT call tray.setContextMenu() — that hijacks left-click on macOS.
 
   tray.on('click', () => {
     console.log('[Tray] Left-click → starting capture');

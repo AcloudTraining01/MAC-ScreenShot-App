@@ -92,11 +92,28 @@ function saveToLibrary(dataUri: string): LibraryEntry | null {
 
 // ─── Auto-launch on login ──────────────────────────────────────────────────
 function setupAutoLaunch(): void {
-  if (app.isPackaged) {
+  if (!app.isPackaged) {
+    console.log('[AutoLaunch] Skipped — running in dev mode');
+    return;
+  }
+
+  try {
     app.setLoginItemSettings({
       openAtLogin: true,
-      openAsHidden: true
+      // openAsHidden: true prevents the app from showing any visible window
+      // at login — the tray icon will still appear in the menu bar.
+      openAsHidden: true,
+      // Pass the explicit app executable path for reliability on macOS 13+
+      path: app.getPath('exe'),
     });
+
+    const settings = app.getLoginItemSettings();
+    console.log('[AutoLaunch] Login item settings →', {
+      openAtLogin: settings.openAtLogin,
+      openAsHidden: settings.openAsHidden,
+    });
+  } catch (err) {
+    console.error('[AutoLaunch] Failed to set login item settings:', err);
   }
 }
 

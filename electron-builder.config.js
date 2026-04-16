@@ -15,11 +15,19 @@ module.exports = {
     'package.json',
   ],
 
+  // Extra resources copied verbatim into the app's Contents/Resources folder
+  // Both 1x and 2x tray icons are required for sharp Retina display rendering
+  extraResources: [
+    { from: 'resources/trayIconTemplate.png',    to: 'trayIconTemplate.png' },
+    { from: 'resources/trayIconTemplate@2x.png', to: 'trayIconTemplate@2x.png' },
+  ],
+
   // ── macOS ──────────────────────────────────────────────
   mac: {
+    // arch is controlled per-job via the --arm64 / --x64 CLI flag in GitHub Actions
     target: [
-      { target: 'dmg', arch: ['arm64', 'x64'] },
-      { target: 'zip', arch: ['arm64', 'x64'] },
+      { target: 'dmg' },
+      { target: 'zip' },
     ],
     icon: 'resources/icon.icns',
     category: 'public.app-category.utilities',
