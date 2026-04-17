@@ -2,21 +2,21 @@
 module.exports = {
   appId: 'com.snapforge.app',
   productName: 'SnapForge',
-  copyright: 'Copyright © 2025 kingsleyasah',
+  copyright: 'Copyright © 2026 kingsleyasah',
+
   directories: {
     output: 'release',
-    buildResources: 'resources',
+    buildResources: 'build',
   },
 
-  // Files to include in the packaged app
+  // Files bundled inside the asar
   files: [
     'out/**/*',
-    'resources/**/*',
     'package.json',
   ],
 
-  // Extra resources copied verbatim into the app's Contents/Resources folder
-  // Both 1x and 2x tray icons are required for sharp Retina display rendering
+  // Extra resources copied verbatim into Contents/Resources/
+  // (accessible at runtime via process.resourcesPath)
   extraResources: [
     { from: 'resources/trayIconTemplate.png',    to: 'trayIconTemplate.png' },
     { from: 'resources/trayIconTemplate@2x.png', to: 'trayIconTemplate@2x.png' },
@@ -24,21 +24,22 @@ module.exports = {
 
   // ── macOS ──────────────────────────────────────────────
   mac: {
-    // arch is controlled per-job via the --arm64 / --x64 CLI flag in GitHub Actions
+    // arch is passed via CLI flag in CI: --arm64 or --x64
     target: [
       { target: 'dmg' },
       { target: 'zip' },
     ],
     icon: 'resources/icon.icns',
     category: 'public.app-category.utilities',
-    // Hardened runtime required for notarization
-    hardenedRuntime: true,
+
+    // Hardened runtime is required ONLY for notarization.
+    // Since we are not code-signing in CI, disable it to prevent
+    // codesign failures on the runner.
+    hardenedRuntime: false,
     gatekeeperAssess: false,
-    // Entitlements needed for screen recording
-    entitlements: 'build/entitlements.mac.plist',
-    entitlementsInherit: 'build/entitlements.mac.plist',
   },
 
+  // ── DMG appearance ─────────────────────────────────────
   dmg: {
     sign: false,
     title: '${productName} ${version}',
@@ -49,7 +50,7 @@ module.exports = {
     window: { width: 540, height: 380 },
   },
 
-  // ── Auto-update publishing via GitHub Releases ─────────
+  // ── Auto-update via GitHub Releases ────────────────────
   publish: {
     provider: 'github',
     owner: 'AcloudTraining01',
