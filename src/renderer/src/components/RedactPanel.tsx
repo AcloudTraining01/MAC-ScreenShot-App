@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { detectPII, type PIIMatch } from '../services/piiDetector';
+import { useFeatureGate } from '../hooks/useFeatureGate';
+import { FeatureGate } from './FeatureGate';
 
 interface RedactPanelProps {
   imageUri: string;
@@ -7,20 +9,57 @@ interface RedactPanelProps {
   onClose: () => void;
 }
 
+// smart.redact is Pro-only — FeatureGate handles the locked state entirely
 const RedactPanel: React.FC<RedactPanelProps> = ({ imageUri, onRedactAll, onClose }) => {
+  return (
+    <FeatureGate
+      feature="smart.redact"
+      fallback={<LockedRedact onClose={onClose} />}
+    >
+      <RedactPanelInner imageUri={imageUri} onRedactAll={onRedactAll} onClose={onClose} />
+    </FeatureGate>
+  );
+};
+
+// ── Pro-locked fallback ───────────────────────────────────────────────────────
+function LockedRedact({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="redact-panel">
+      <div className="ocr-header">
+        <span>🛡️ Smart Redact</span>
+        <button className="icon-button-sm" onClick={onClose}>✕</button>
+      </div>
+      <div className="ocr-empty">
+        <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
+        <p style={{ fontWeight: 600, marginBottom: 6 }}>
+          AI Smart Redact — Pro Feature
+        </p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16 }}>
+          Automatically detect and redact emails, phone numbers, SSNs, credit
+          cards, and more. Available on SnapForge Pro.
+        </p>
+        <button
+          className="feature-gate-btn"
+          onClick={() => alert('Upgrade to SnapForge Pro — coming soon!')}
+        >
+          ⭐ Go Pro
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Inner panel — only rendered for Pro users ─────────────────────────────────
+function RedactPanelInner({ imageUri, onRedactAll, onClose }: RedactPanelProps) {
   const [status, setStatus] = useState<'idle' | 'scanning' | 'done'>('idle');
   const [matches, setMatches] = useState<PIIMatch[]>([]);
-  const [ocrText, setOcrText] = useState('');
 
   const runScan = async () => {
     setStatus('scanning');
     try {
-      // Dynamic import to avoid loading tesseract at startup
       const Tesseract = await import('tesseract.js');
       const result = await Tesseract.recognize(imageUri, 'eng');
       const text = result.data.text;
-      setOcrText(text);
-
       const piiMatches = detectPII(text);
       setMatches(piiMatches);
       setStatus('done');
@@ -109,17 +148,13 @@ const RedactPanel: React.FC<RedactPanelProps> = ({ imageUri, onRedactAll, onClos
             </>
           )}
 
-          <button
-            className="ocr-run-btn"
-            style={{ marginTop: 8 }}
-            onClick={runScan}
-          >
+          <button className="ocr-run-btn" style={{ marginTop: 8 }} onClick={runScan}>
             🔄 Re-scan
           </button>
         </div>
       )}
     </div>
   );
-};
+}
 
 export default RedactPanel;

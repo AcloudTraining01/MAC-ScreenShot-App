@@ -18,9 +18,44 @@ import { CropTool } from './tools/CropTool';
 import { EyedropperTool } from './tools/EyedropperTool';
 import { EmojiTool } from './tools/EmojiTool';
 import type { PIIMatch } from '../services/piiDetector';
+import { useFeatureGate } from '../hooks/useFeatureGate';
+import { useAuthStore } from '../store/authStore';
 import '../styles/editor.css';
 
 const BG_DATA_KEY = '__snapforge_bg';
+
+// ── Gated tool guard — called before activating a tool that requires access ──
+function useGatedToolSelect(onToolSelect: (t: ToolName) => void) {
+  const blurGate   = useFeatureGate('edit.blur');
+  const hlGate     = useFeatureGate('edit.highlight');
+  const stepGate   = useFeatureGate('edit.steps');
+  const emojiGate  = useFeatureGate('edit.emoji');
+  const eyeGate    = useFeatureGate('edit.colorpicker');
+  const { incrementUsage } = useAuthStore();
+
+  const GATED: Partial<Record<ToolName, { gate: typeof blurGate; featureKey: string }>> = {
+    blur:        { gate: blurGate,  featureKey: 'edit.blur' },
+    highlight:   { gate: hlGate,   featureKey: 'edit.highlight' },
+    step:        { gate: stepGate, featureKey: 'edit.steps' },
+    emoji:       { gate: emojiGate, featureKey: 'edit.emoji' },
+    eyedropper:  { gate: eyeGate,  featureKey: 'edit.colorpicker' },
+  };
+
+  return useCallback((tool: ToolName) => {
+    const entry = GATED[tool];
+    if (entry && !entry.gate.allowed) {
+      const reason = entry.gate.reason === 'limit_reached'
+        ? `Daily limit reached (${entry.gate.dailyLimit}/day).\nUpgrade to Pro for unlimited access.`
+        : 'This tool requires SnapForge Pro.\n\nUpgrade to unlock all annotation tools.';
+      alert(`🔒 ${reason}`);
+      return;
+    }
+    if (entry?.gate.allowed) {
+      incrementUsage(entry.featureKey);
+    }
+    onToolSelect(tool);
+  }, [blurGate, hlGate, stepGate, emojiGate, eyeGate, onToolSelect, incrementUsage]);
+}
 
 const EditorWindow: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -43,17 +78,22 @@ const EditorWindow: React.FC = () => {
   const [selectedEmoji, setSelectedEmoji] = useState('👍');
   const emojiToolRef = useRef<EmojiTool | null>(null);
 
+  // Feature gates for feature buttons in the header
+  const beautifierGate = useFeatureGate('smart.beautifier');
+  const { incrementUsage } = useAuthStore();
+
+  // Gated tool selector — intercepts Pro-only / limit-reached tools
+  const handleGatedToolSelect = useGatedToolSelect(setActiveTool);
+
   // ── Receive image data from main process ──
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') window.api.closeEditor();
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        handleUndo();
+        e.preventDefault(); handleUndo();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
-        e.preventDefault();
-        handleRedo();
+        e.preventDefault(); handleRedo();
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (fabricRef.current) {
@@ -74,22 +114,18 @@ const EditorWindow: React.FC = () => {
           'p': 'pen', 't': 'text', 'h': 'highlight', 'b': 'blur',
           's': 'step', 'c': 'crop', 'i': 'eyedropper', 'e': 'emoji'
         };
-        if (shortcutMap[key]) {
-          setActiveTool(shortcutMap[key]);
-        }
+        if (shortcutMap[key]) handleGatedToolSelect(shortcutMap[key]);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    const unsubscribe = window.api.onInitEditor((uri) => {
-      setImageUri(uri);
-    });
+    const unsubscribe = window.api.onInitEditor((uri) => { setImageUri(uri); });
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       unsubscribe();
     };
-  }, []);
+  }, [handleGatedToolSelect]);
 
   // ── Fit the background image to the canvas container ──
   const fitBgToCanvas = useCallback((canvas: FabricCanvas) => {
@@ -112,8 +148,7 @@ const EditorWindow: React.FC = () => {
     displayScaleRef.current = scale;
 
     bg.set({
-      scaleX: scale,
-      scaleY: scale,
+      scaleX: scale, scaleY: scale,
       left: (cw - imgW * scale) / 2,
       top: (ch - imgH * scale) / 2,
     });
@@ -129,22 +164,16 @@ const EditorWindow: React.FC = () => {
     setOriginalSize({ w: imgW, h: imgH });
 
     fabricImg.set({
-      selectable: false,
-      evented: false,
-      hoverCursor: 'default',
-      originX: 'left',
-      originY: 'top',
+      selectable: false, evented: false, hoverCursor: 'default',
+      originX: 'left', originY: 'top',
       data: { [BG_DATA_KEY]: true },
     });
 
-    // Remove any old background objects
     canvas.getObjects().forEach((obj) => {
       if ((obj as any).data?.[BG_DATA_KEY]) canvas.remove(obj);
     });
-
     canvas.insertAt(0, fabricImg);
     bgImageRef.current = fabricImg;
-
     fitBgToCanvas(canvas);
   }, [fitBgToCanvas]);
 
@@ -164,19 +193,13 @@ const EditorWindow: React.FC = () => {
 
     FabricImage.fromURL(imageUri).then((fabricImg) => {
       addBgImage(canvas, fabricImg);
-
-      // Multiple timing fallbacks to guarantee fit after layout
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          fitBgToCanvas(canvas);
-          saveStateInternal(canvas);
-        });
+        requestAnimationFrame(() => { fitBgToCanvas(canvas); saveStateInternal(canvas); });
       });
       setTimeout(() => { if (fabricRef.current) fitBgToCanvas(fabricRef.current); }, 150);
       setTimeout(() => { if (fabricRef.current) fitBgToCanvas(fabricRef.current); }, 500);
     });
 
-    // ResizeObserver for continuous tracking
     const container = containerRef.current;
     if (container) {
       resizeObserver = new ResizeObserver(() => {
@@ -190,10 +213,7 @@ const EditorWindow: React.FC = () => {
 
     return () => {
       resizeObserver?.disconnect();
-      if (fabricRef.current) {
-        fabricRef.current.dispose();
-        fabricRef.current = null;
-      }
+      if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
     };
   }, [imageUri, addBgImage, fitBgToCanvas]);
 
@@ -205,12 +225,9 @@ const EditorWindow: React.FC = () => {
   }, []);
 
   const saveState = useCallback(() => {
-    if (fabricRef.current) {
-      saveStateInternal(fabricRef.current);
-    }
+    if (fabricRef.current) saveStateInternal(fabricRef.current);
   }, [saveStateInternal]);
 
-  // After loadFromJSON, re-lock the background object and update refs
   const relockBackground = useCallback((canvas: FabricCanvas) => {
     const objects = canvas.getObjects();
     for (const obj of objects) {
@@ -231,7 +248,6 @@ const EditorWindow: React.FC = () => {
       const newStack = [...prev];
       const current = newStack.pop()!;
       setRedoStack((r) => [...r, current]);
-
       const previous = newStack[newStack.length - 1];
       if (fabricRef.current && previous) {
         fabricRef.current.loadFromJSON(JSON.parse(previous)).then(() => {
@@ -249,7 +265,6 @@ const EditorWindow: React.FC = () => {
       const newStack = [...prev];
       const next = newStack.pop()!;
       setUndoStack((u) => [...u, next]);
-
       if (fabricRef.current) {
         fabricRef.current.loadFromJSON(JSON.parse(next)).then(() => {
           relockBackground(fabricRef.current!);
@@ -265,28 +280,22 @@ const EditorWindow: React.FC = () => {
     const canvas = fabricRef.current;
     if (!canvas) return;
 
-    // Deactivate previous tool
-    if (toolRef.current) {
-      toolRef.current.deactivate(canvas);
-      toolRef.current = null;
-    }
+    if (toolRef.current) { toolRef.current.deactivate(canvas); toolRef.current = null; }
 
     let handler: ToolHandler | null = null;
     switch (activeTool) {
       case 'select':
-        canvas.isDrawingMode = false;
-        canvas.selection = true;
-        canvas.defaultCursor = 'default';
-        canvas.hoverCursor = 'move';
+        canvas.isDrawingMode = false; canvas.selection = true;
+        canvas.defaultCursor = 'default'; canvas.hoverCursor = 'move';
         break;
-      case 'arrow': handler = new ArrowTool(toolConfig); break;
-      case 'rect': handler = new RectTool(toolConfig); break;
-      case 'ellipse': handler = new EllipseTool(toolConfig); break;
-      case 'pen': handler = new PenTool(toolConfig); break;
-      case 'text': handler = new TextTool(toolConfig); break;
-      case 'blur': handler = new BlurTool(toolConfig); break;
-      case 'highlight': handler = new HighlightTool(toolConfig); break;
-      case 'step': handler = new StepTool(toolConfig); break;
+      case 'arrow':      handler = new ArrowTool(toolConfig); break;
+      case 'rect':       handler = new RectTool(toolConfig); break;
+      case 'ellipse':    handler = new EllipseTool(toolConfig); break;
+      case 'pen':        handler = new PenTool(toolConfig); break;
+      case 'text':       handler = new TextTool(toolConfig); break;
+      case 'blur':       handler = new BlurTool(toolConfig); break;
+      case 'highlight':  handler = new HighlightTool(toolConfig); break;
+      case 'step':       handler = new StepTool(toolConfig); break;
       case 'crop': {
         const cropTool = new CropTool(toolConfig);
         cropTool.setCropCallback((x, y, w, h) => handleCrop(x, y, w, h));
@@ -310,10 +319,7 @@ const EditorWindow: React.FC = () => {
       }
     }
 
-    if (handler) {
-      handler.activate(canvas);
-      toolRef.current = handler;
-    }
+    if (handler) { handler.activate(canvas); toolRef.current = handler; }
   }, [activeTool, toolConfig]);
 
   // ── Crop handler ──
@@ -322,8 +328,7 @@ const EditorWindow: React.FC = () => {
     if (!canvas || !originalSize) return;
 
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = w;
-    tempCanvas.height = h;
+    tempCanvas.width = w; tempCanvas.height = h;
     const tempCtx = tempCanvas.getContext('2d');
     if (!tempCtx) return;
 
@@ -337,11 +342,9 @@ const EditorWindow: React.FC = () => {
       addBgImage(canvas, fabricImg);
       saveState();
     });
-
     setActiveTool('select');
   }, [saveState, addBgImage, originalSize]);
 
-  // ── Config changes ──
   const handleConfigChange = (partial: Partial<ToolConfig>) => {
     setToolConfig((prev) => ({ ...prev, ...partial }));
   };
@@ -349,41 +352,26 @@ const EditorWindow: React.FC = () => {
   // ── Export ──
   const exportImage = useCallback((): string | null => {
     if (!fabricRef.current || !originalSize) return null;
-
     const canvas = fabricRef.current;
     const bg = bgImageRef.current;
     if (!bg) return null;
-
     const scale = displayScaleRef.current;
-    const bgLeft = bg.left || 0;
-    const bgTop = bg.top || 0;
-
-    // Render the image area at native resolution
-    const dataUri = canvas.toDataURL({
+    return canvas.toDataURL({
       format: 'png',
       multiplier: 1 / scale,
-      left: bgLeft,
-      top: bgTop,
+      left: bg.left || 0,
+      top: bg.top || 0,
       width: originalSize.w * scale,
       height: originalSize.h * scale,
     });
-    return dataUri;
   }, [originalSize]);
 
-  const handleCopy = () => {
-    const dataUri = exportImage();
-    if (dataUri) window.api.copyEdited(dataUri);
-  };
-
-  const handleSave = () => {
-    const dataUri = exportImage();
-    if (dataUri) window.api.saveEdited(dataUri);
-  };
+  const handleCopy = () => { const uri = exportImage(); if (uri) window.api.copyEdited(uri); };
+  const handleSave = () => { const uri = exportImage(); if (uri) window.api.saveEdited(uri); };
 
   const handleBeautify = (beautifiedUri: string) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-
     canvas.clear();
     canvas.backgroundColor = '#18181c';
     FabricImage.fromURL(beautifiedUri).then((fabricImg) => {
@@ -391,6 +379,21 @@ const EditorWindow: React.FC = () => {
       saveState();
     });
     setShowBeautifier(false);
+  };
+
+  // ── Beautifier feature button — gated ──
+  const handleBeautifierClick = () => {
+    if (!beautifierGate.allowed) {
+      const msg = beautifierGate.reason === 'limit_reached'
+        ? `Daily limit reached (${beautifierGate.dailyLimit}/day). Upgrade to Pro for unlimited Beautifier access.`
+        : 'The Beautifier requires SnapForge Pro.';
+      alert(`✨ ${msg}`);
+      return;
+    }
+    incrementUsage('smart.beautifier');
+    setShowBeautifier(!showBeautifier);
+    setShowOCR(false);
+    setShowRedact(false);
   };
 
   if (!imageUri) {
@@ -403,12 +406,12 @@ const EditorWindow: React.FC = () => {
 
   return (
     <div className="editor-container">
-      {/* ── Header Bar: tools left, features + actions right ── */}
+      {/* ── Header Bar ── */}
       <div className="editor-header">
         <div className="editor-header-center">
           <Toolbar
             activeTool={activeTool}
-            onToolSelect={setActiveTool}
+            onToolSelect={handleGatedToolSelect}
             onUndo={handleUndo}
             onRedo={handleRedo}
             canUndo={undoStack.length > 1}
@@ -420,7 +423,9 @@ const EditorWindow: React.FC = () => {
             }}
           />
         </div>
+
         <div className="editor-header-right">
+          {/* OCR — gated, handled inside OCRPanel */}
           <button
             className={`editor-feature-btn ${showOCR ? 'active' : ''}`}
             onClick={() => { setShowOCR(!showOCR); setShowBeautifier(false); setShowRedact(false); }}
@@ -428,6 +433,8 @@ const EditorWindow: React.FC = () => {
           >
             📝 OCR
           </button>
+
+          {/* Redact — gated, handled inside RedactPanel */}
           <button
             className={`editor-feature-btn ${showRedact ? 'active' : ''}`}
             onClick={() => { setShowRedact(!showRedact); setShowOCR(false); setShowBeautifier(false); }}
@@ -435,43 +442,38 @@ const EditorWindow: React.FC = () => {
           >
             🛡️ Redact
           </button>
+
+          {/* Beautifier — gated here at the button level */}
           <button
-            className={`editor-feature-btn ${showBeautifier ? 'active' : ''}`}
-            onClick={() => { setShowBeautifier(!showBeautifier); setShowOCR(false); setShowRedact(false); }}
-            title="Screenshot Beautifier"
+            className={`editor-feature-btn ${showBeautifier ? 'active' : ''} ${!beautifierGate.allowed ? 'locked' : ''}`}
+            onClick={handleBeautifierClick}
+            title={beautifierGate.allowed
+              ? `Screenshot Beautifier${beautifierGate.remaining !== undefined ? ` (${beautifierGate.remaining} uses left today)` : ''}`
+              : 'Screenshot Beautifier — upgrade to unlock'}
           >
-            ✨ Beautify
+            ✨ Beautify{!beautifierGate.allowed && ' 🔒'}
           </button>
+
           <div className="header-divider" />
-          <button className="editor-action-btn" onClick={() => window.api.closeEditor()}>
-            Discard
-          </button>
-          <button className="editor-action-btn" onClick={handleSave}>
-            💾 Save
-          </button>
-          <button className="editor-action-btn primary" onClick={handleCopy}>
-            📋 Copy
-          </button>
+          <button className="editor-action-btn" onClick={() => window.api.closeEditor()}>Discard</button>
+          <button className="editor-action-btn" onClick={handleSave}>💾 Save</button>
+          <button className="editor-action-btn primary" onClick={handleCopy}>📋 Copy</button>
         </div>
       </div>
 
-      {/* ── Property Bar (visible when a drawing tool is active) ── */}
+      {/* ── Property Bar ── */}
       {activeTool !== 'select' && activeTool !== 'crop' && (
         <div className="editor-property-bar">
-          <PropertyPanel
-            activeTool={activeTool}
-            config={toolConfig}
-            onConfigChange={handleConfigChange}
-          />
+          <PropertyPanel activeTool={activeTool} config={toolConfig} onConfigChange={handleConfigChange} />
         </div>
       )}
 
-      {/* ── Canvas fills all remaining space ── */}
+      {/* ── Canvas ── */}
       <div className="editor-canvas-wrapper" ref={containerRef}>
         <canvas ref={canvasRef} />
       </div>
 
-      {/* ── Floating Panels (OCR / Beautifier) ── */}
+      {/* ── Floating Panels ── */}
       {showBeautifier && (
         <div className="floating-panel">
           <Beautifier
@@ -483,29 +485,14 @@ const EditorWindow: React.FC = () => {
       )}
       {showOCR && (
         <div className="floating-panel">
-          <OCRPanel
-            imageUri={exportImage() || imageUri}
-            onClose={() => setShowOCR(false)}
-          />
+          <OCRPanel imageUri={exportImage() || imageUri} onClose={() => setShowOCR(false)} />
         </div>
       )}
       {showRedact && (
         <div className="floating-panel">
           <RedactPanel
             imageUri={exportImage() || imageUri}
-            onRedactAll={(matches) => {
-              // Apply blur rectangles over detected PII regions
-              const canvas = fabricRef.current;
-              if (!canvas) return;
-              // For now, add red semi-transparent rectangles as redaction markers
-              matches.forEach(() => {
-                // Since we can't map text positions back to pixel coordinates
-                // from OCR without word-level bbox data, we notify the user
-                // and use the blur tool manually. In a future version with
-                // Tesseract word-level bounding boxes, we can auto-place.
-              });
-              setShowRedact(false);
-            }}
+            onRedactAll={(_matches) => { setShowRedact(false); }}
             onClose={() => setShowRedact(false)}
           />
         </div>

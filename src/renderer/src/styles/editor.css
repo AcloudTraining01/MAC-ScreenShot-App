@@ -109,6 +109,19 @@
   color: hsl(200, 100%, 80%);
 }
 
+/* Locked / gated feature button */
+.editor-feature-btn.locked {
+  opacity: 0.6;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+.editor-feature-btn.locked:hover {
+  transform: none;
+  box-shadow: none;
+  background: hsla(240, 100%, 100%, 0.07);
+}
+
+
 /* 3. Toolbar — column wrapper allows two rows */
 .toolbar-wrapper {
   display: flex;

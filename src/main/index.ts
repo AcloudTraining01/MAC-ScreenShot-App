@@ -8,18 +8,36 @@ import {
   nativeTheme,
   globalShortcut,
   dialog,
-  systemPreferences,
   shell
 } from 'electron';
-import { join, join as pathJoin, basename } from 'path';
-import { exec } from 'child_process';
-import { tmpdir, homedir } from 'os';
-import { existsSync, unlinkSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'fs';
+import { join, join as pathJoin } from 'path';
+import { homedir } from 'os';
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'fs';
+
 import { createTray, destroyTray } from './tray';
+import {
+  loadSettings,
+  saveSettings,
+  registerHotkeys,
+  setupSettingsIPC,
+} from './settingsManager';
+import {
+  createOnboardingWindow,
+  setupOnboardingIPC,
+} from './onboarding';
+import { platform } from './platform';
+import {
+  setupLicensingIPC,
+  validateLicense,
+  getResolvedTier,
+} from './licensing';
+import type { AppSettings } from '../shared/types';
+import { IPC } from '../shared/constants';
 
 let previewWindow: BrowserWindow | null = null;
 let editorWindow: BrowserWindow | null = null;
 let libraryWindow: BrowserWindow | null = null;
+let settingsWindow: BrowserWindow | null = null;
 let isCapturing = false;
 
 // ─── Library paths ─────────────────────────────────────────────────────────
@@ -91,59 +109,15 @@ function saveToLibrary(dataUri: string): LibraryEntry | null {
 }
 
 // ─── Auto-launch on login ──────────────────────────────────────────────────
-function setupAutoLaunch(): void {
-  if (!app.isPackaged) {
-    console.log('[AutoLaunch] Skipped — running in dev mode');
-    return;
-  }
-
-  try {
-    app.setLoginItemSettings({
-      openAtLogin: true,
-      // openAsHidden: true prevents the app from showing any visible window
-      // at login — the tray icon will still appear in the menu bar.
-      openAsHidden: true,
-      // Pass the explicit app executable path for reliability on macOS 13+
-      path: app.getPath('exe'),
-    });
-
-    const settings = app.getLoginItemSettings();
-    console.log('[AutoLaunch] Login item settings →', {
-      openAtLogin: settings.openAtLogin,
-      openAsHidden: settings.openAsHidden,
-    });
-  } catch (err) {
-    console.error('[AutoLaunch] Failed to set login item settings:', err);
-  }
+function applyAutoLaunch(settings: AppSettings): void {
+  platform.registerAutoStart(settings.launchOnLogin);
 }
 
-// ─── Screenshot capture using native macOS interactive selection ───────────
-async function captureScreenInteractive(): Promise<string | null> {
-  return new Promise((resolve) => {
-    const tmpPath = pathJoin(tmpdir(), `snapforge-${Date.now()}.png`);
-    exec(`screencapture -i -x "${tmpPath}"`, (err) => {
-      if (err) {
-        console.error('[Capture] screencapture failed:', err);
-        resolve(null);
-        return;
-      }
-      if (!existsSync(tmpPath)) {
-        console.log('[Capture] User cancelled selection.');
-        resolve(null);
-        return;
-      }
-      try {
-        const buf = readFileSync(tmpPath);
-        const dataUri = 'data:image/png;base64,' + buf.toString('base64');
-        unlinkSync(tmpPath);
-        resolve(dataUri);
-      } catch (e) {
-        console.error('[Capture] Failed to read capture file:', e);
-        resolve(null);
-      }
-    });
-  });
+// ─── Screenshot capture — delegates to the platform adapter ───────────────
+function captureScreenInteractive(): Promise<string | null> {
+  return platform.captureInteractive();
 }
+
 
 // ─── Main capture flow ─────────────────────────────────────────────────────
 async function startCapture(): Promise<void> {
@@ -313,6 +287,49 @@ function closeLibrary(): void {
   libraryWindow = null;
 }
 
+// ─── Settings Window ─────────────────────────────────────────────────
+function createSettingsWindow(): void {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.focus();
+    return;
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: 680,
+    height: 520,
+    frame: false,
+    transparent: false,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#18181c' : '#f5f5f7',
+    alwaysOnTop: false,
+    skipTaskbar: false,
+    hasShadow: true,
+    resizable: false,
+    center: true,
+    minimizable: false,
+    maximizable: false,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+    },
+  });
+
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+  });
+
+  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
+    settingsWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '#settings');
+  } else {
+    settingsWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'settings' });
+  }
+}
+
+function closeSettingsWindow(): void {
+  if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.close();
+  settingsWindow = null;
+}
+
 // ─── IPC Handlers ──────────────────────────────────────────────────────────
 function setupIPC(): void {
   // ── Preview actions ──
@@ -414,12 +431,27 @@ function setupIPC(): void {
   });
 
   // ── Library ──
-  ipcMain.on('open-library', () => {
+  ipcMain.on(IPC.OPEN_LIBRARY, () => {
     setTimeout(() => createLibraryWindow(), 0);
   });
 
-  ipcMain.handle('get-library', () => {
+  ipcMain.handle(IPC.GET_LIBRARY, () => {
     return readLibraryIndex();
+  });
+
+  // Update OCR text for a library entry after extraction in the renderer
+  ipcMain.on(IPC.UPDATE_OCR_TEXT, (_event, id: string, ocrText: string) => {
+    try {
+      const index = readLibraryIndex();
+      const entry = index.find((e) => e.id === id);
+      if (entry) {
+        entry.ocrText = ocrText;
+        writeLibraryIndex(index);
+        console.log('[Library] OCR text updated for:', id);
+      }
+    } catch (err) {
+      console.error('[Library] Failed to update OCR text:', err);
+    }
   });
 
   ipcMain.on('delete-screenshot', (_event, id: string) => {
@@ -463,6 +495,26 @@ function setupIPC(): void {
     setTimeout(() => closeLibrary(), 0);
   });
 
+  // ── Settings ──
+  ipcMain.on('open-settings', () => {
+    setTimeout(() => createSettingsWindow(), 0);
+  });
+
+  ipcMain.on('close-settings', () => {
+    setTimeout(() => closeSettingsWindow(), 0);
+  });
+
+  // Native directory picker for save path setting
+  ipcMain.handle('pick-directory', async () => {
+    const win = settingsWindow && !settingsWindow.isDestroyed() ? settingsWindow : undefined;
+    const result = await dialog.showOpenDialog(win as BrowserWindow, {
+      title: 'Choose Save Folder',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
   // ── Theme ──
   ipcMain.handle('get-system-theme', () => {
     return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
@@ -482,41 +534,56 @@ function setupIPC(): void {
 
 // ─── App Lifecycle ─────────────────────────────────────────────────────────
 app.whenReady().then(() => {
-  if (process.platform === 'darwin') {
-    app.dock?.hide();
+  // Platform-specific pre-init: GPU flags, dock
+  platform.configureGPU();
+  platform.hideDockIcon();
+
+  // Permission preflight log
+  const permStatus = platform.checkScreenCapturePermission();
+  if (permStatus !== 'granted') {
+    console.warn(`[Permissions] Screen capture not granted (${permStatus}). Onboarding will guide the user.`);
   }
 
-  if (process.platform === 'darwin') {
-    const status = systemPreferences.getMediaAccessStatus('screen');
-    if (status !== 'granted') {
-      console.warn('[Permissions] Screen recording not granted. macOS will prompt on first capture.');
-    }
-  }
-
-  setupAutoLaunch();
+  // ── Load settings & wire hotkeys ──────────────────────────────────────────
+  const currentSettings = loadSettings();
+  applyAutoLaunch(currentSettings);
   setupIPC();
-  createTray(startCapture, () => {
-    ipcMain.emit('open-library');
+
+  const openLibraryAction = (): void => createLibraryWindow();
+
+  setupSettingsIPC(() => loadSettings(), startCapture, openLibraryAction);
+  registerHotkeys(startCapture, openLibraryAction, currentSettings);
+
+  const openSettingsAction = (): void => createSettingsWindow();
+
+  createTray(startCapture, openLibraryAction, openSettingsAction);
+
+  // ── Licensing — validate on every launch ────────────────────────────────
+  setupLicensingIPC();
+  const licenseResult = validateLicense();
+  const resolvedTier = getResolvedTier();
+  console.log(
+    `[Licensing] Tier: ${resolvedTier}`,
+    licenseResult.valid ? `(${licenseResult.email})` : `(${licenseResult.reason})`
+  );
+
+  // ── Onboarding — show on first launch ───────────────────────────────
+  setupOnboardingIPC(() => {
+    // Mark onboarding complete and persist
+    const updated = { ...loadSettings(), hasCompletedOnboarding: true };
+    saveSettings(updated);
+    console.log('[Onboarding] Marked complete — settings saved.');
   });
 
-  const ret = globalShortcut.register('CmdOrCtrl+Shift+4', () => {
-    console.log('[Hotkey] CmdOrCtrl+Shift+4 pressed');
-    startCapture();
-  });
-  if (!ret) {
-    console.warn('[Hotkey] Failed to register CmdOrCtrl+Shift+4');
-  }
-
-  const retLib = globalShortcut.register('CmdOrCtrl+Shift+L', () => {
-    console.log('[Hotkey] CmdOrCtrl+Shift+L pressed');
-    createLibraryWindow();
-  });
-  if (!retLib) {
-    console.warn('[Hotkey] Failed to register CmdOrCtrl+Shift+L');
+  if (!currentSettings.hasCompletedOnboarding) {
+    console.log('[Onboarding] First launch detected — showing onboarding.');
+    // Small delay so the tray finishes initialising first
+    setTimeout(() => createOnboardingWindow(), 300);
   }
 
   console.log('✅ SnapForge is running in the menu bar!');
-  console.log('   Click the tray icon or press ⌘+Shift+4 to capture.');
+  console.log(`   Capture hotkey: ${currentSettings.captureHotkey}`);
+  console.log(`   Library hotkey: ${currentSettings.libraryHotkey}`);
   if (!app.isPackaged) {
     console.log('   [dev mode] auto-launch disabled in dev mode');
   }

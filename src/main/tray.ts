@@ -54,7 +54,11 @@ function createTrayIcon(): Electron.NativeImage {
   return resized;
 }
 
-export function createTray(onCapture: () => void, onOpenLibrary?: () => void): Tray {
+export function createTray(
+  onCapture: () => void,
+  onOpenLibrary?: () => void,
+  onOpenSettings?: () => void
+): Tray {
   const icon = createTrayIcon();
   tray = new Tray(icon);
 
@@ -72,6 +76,12 @@ export function createTray(onCapture: () => void, onOpenLibrary?: () => void): T
       accelerator: 'CmdOrCtrl+Shift+L',
       click: () => {
         onOpenLibrary?.();
+      }
+    },
+    {
+      label: '⚙️  Preferences…',
+      click: () => {
+        onOpenSettings?.();
       }
     },
     { type: 'separator' },

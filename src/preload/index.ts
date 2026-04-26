@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { AppSettings } from '../shared/types';
 
 contextBridge.exposeInMainWorld('api', {
   // ── Preview ──
@@ -34,6 +35,9 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('library-updated', fn);
     return () => ipcRenderer.removeListener('library-updated', fn);
   },
+  /** Persist OCR-extracted text for a library entry */
+  updateOcrText: (id: string, ocrText: string) =>
+    ipcRenderer.send('update-ocr-text', id, ocrText),
 
   // ── Theme ──
   getSystemTheme: () => ipcRenderer.invoke('get-system-theme'),
@@ -41,5 +45,39 @@ contextBridge.exposeInMainWorld('api', {
     const fn = (_event: any, theme: string) => callback(theme);
     ipcRenderer.on('theme-changed', fn);
     return () => ipcRenderer.removeListener('theme-changed', fn);
-  }
+  },
+
+  // ── Settings ──
+  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke('get-settings'),
+  saveSettings: (settings: AppSettings): Promise<AppSettings> =>
+    ipcRenderer.invoke('save-settings', settings),
+  onSettingsChanged: (callback: (settings: AppSettings) => void) => {
+    const fn = (_event: any, s: AppSettings) => callback(s);
+    ipcRenderer.on('settings-changed', fn);
+    return () => ipcRenderer.removeListener('settings-changed', fn);
+  },
+  openSettings: () => ipcRenderer.send('open-settings'),
+  closeSettings: () => ipcRenderer.send('close-settings'),
+  pickDirectory: (): Promise<string | null> => ipcRenderer.invoke('pick-directory'),
+
+  // ── Onboarding ──
+  checkScreenPermission: (): Promise<string> => ipcRenderer.invoke('check-screen-permission'),
+  requestScreenPermission: (): Promise<string> => ipcRenderer.invoke('request-screen-permission'),
+  completeOnboarding: () => ipcRenderer.send('complete-onboarding'),
+  skipOnboarding: () => ipcRenderer.send('skip-onboarding'),
+
+  // ── Licensing ──
+  getTier: (): Promise<import('../shared/types').LicenseValidationResult> =>
+    ipcRenderer.invoke('get-tier'),
+  activateLicense: (key: string): Promise<import('../shared/types').LicenseValidationResult> =>
+    ipcRenderer.invoke('activate-license', key),
+  deactivateLicense: () => ipcRenderer.send('deactivate-license'),
+  onLicenseChanged: (
+    callback: (result: import('../shared/types').LicenseValidationResult) => void
+  ) => {
+    const fn = (_event: any, result: import('../shared/types').LicenseValidationResult) =>
+      callback(result);
+    ipcRenderer.on('license-changed', fn);
+    return () => ipcRenderer.removeListener('license-changed', fn);
+  },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { useAuthStore } from './store/authStore';
 
 // ── System-Aware Dark/Light Theme ──
 // Uses Electron's nativeTheme via IPC, with CSS media-query fallback
@@ -30,10 +31,14 @@ async function initTheme(): Promise<void> {
   }
 }
 
-initTheme();
-
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// Boot sequence: theme + license tier loaded before first render
+Promise.all([
+  initTheme(),
+  useAuthStore.getState().hydrate(),
+]).finally(() => {
+  ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+});
