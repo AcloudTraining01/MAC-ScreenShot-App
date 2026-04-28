@@ -99,15 +99,6 @@ const LibraryWindow: React.FC = () => {
     setConfirmDelete(null);
   };
 
-  const handleCopy = async (entry: LibraryEntry) => {
-    try {
-      const response = await fetch(`file://${entry.path}`);
-      // For Electron, we'll read via a data URI approach
-      // The simplest way: open in editor then copy, or use the path directly
-      window.api.openInEditor(entry.path);
-    } catch { /* noop */ }
-  };
-
   if (loading) {
     return (
       <div className="library-container">

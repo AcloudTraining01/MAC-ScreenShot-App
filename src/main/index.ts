@@ -10,9 +10,9 @@ import {
   dialog,
   shell
 } from 'electron';
-import { join, join as pathJoin } from 'path';
+import { join } from 'path';
 import { homedir } from 'os';
-import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'fs';
+import { writeFileSync, mkdirSync, readFileSync, existsSync, unlinkSync } from 'fs';
 
 import { createTray, destroyTray } from './tray';
 import {
@@ -31,7 +31,7 @@ import {
   validateLicense,
   getResolvedTier,
 } from './licensing';
-import type { AppSettings } from '../shared/types';
+import type { AppSettings, LibraryEntry } from '../shared/types';
 import { IPC } from '../shared/constants';
 
 let previewWindow: BrowserWindow | null = null;
@@ -41,24 +41,14 @@ let settingsWindow: BrowserWindow | null = null;
 let isCapturing = false;
 
 // ─── Library paths ─────────────────────────────────────────────────────────
-const LIBRARY_DIR = pathJoin(homedir(), 'Pictures', 'SnapForge');
-const LIBRARY_INDEX = pathJoin(homedir(), '.snapforge', 'library.json');
+const LIBRARY_DIR = join(homedir(), 'Pictures', 'SnapForge');
+const LIBRARY_INDEX = join(homedir(), '.snapforge', 'library.json');
 
 function ensureLibraryPaths(): void {
   if (!existsSync(LIBRARY_DIR)) mkdirSync(LIBRARY_DIR, { recursive: true });
-  const configDir = pathJoin(homedir(), '.snapforge');
+  const configDir = join(homedir(), '.snapforge');
   if (!existsSync(configDir)) mkdirSync(configDir, { recursive: true });
   if (!existsSync(LIBRARY_INDEX)) writeFileSync(LIBRARY_INDEX, '[]', 'utf-8');
-}
-
-interface LibraryEntry {
-  id: string;
-  filename: string;
-  path: string;
-  timestamp: number;
-  width: number;
-  height: number;
-  fileSize: number;
 }
 
 function readLibraryIndex(): LibraryEntry[] {
@@ -84,7 +74,7 @@ function saveToLibrary(dataUri: string): LibraryEntry | null {
     const size = img.getSize();
     const ts = Date.now();
     const filename = `snapforge-${ts}.png`;
-    const filePath = pathJoin(LIBRARY_DIR, filename);
+    const filePath = join(LIBRARY_DIR, filename);
     writeFileSync(filePath, buf);
 
     const entry: LibraryEntry = {
@@ -354,7 +344,7 @@ function setupIPC(): void {
         const parentWin = win && !win.isDestroyed() ? win : undefined;
         const options = {
           title: 'Save Screenshot',
-          defaultPath: pathJoin(homedir(), 'Desktop', `screenshot-${Date.now()}.png`),
+          defaultPath: join(homedir(), 'Desktop', `screenshot-${Date.now()}.png`),
           filters: [{ name: 'PNG Image', extensions: ['png'] }]
         };
         const result = parentWin 
@@ -407,7 +397,7 @@ function setupIPC(): void {
         const parentWin = win && !win.isDestroyed() ? win : undefined;
         const options = {
           title: 'Save Edited Screenshot',
-          defaultPath: pathJoin(homedir(), 'Desktop', `snapforge-${Date.now()}.png`),
+          defaultPath: join(homedir(), 'Desktop', `snapforge-${Date.now()}.png`),
           filters: [{ name: 'PNG Image', extensions: ['png'] }]
         };
         const result = parentWin

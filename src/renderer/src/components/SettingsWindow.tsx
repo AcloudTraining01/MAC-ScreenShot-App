@@ -228,7 +228,7 @@ const SettingsWindow: React.FC = () => {
       <div className="settings-header">
         <div className="settings-header-left">
           <h1 className="settings-title">⚙️ Preferences</h1>
-          <span className="settings-version">v1.0.2</span>
+          <span className="settings-version">v1.0.5</span>
         </div>
         <button
           className="settings-close-btn"
