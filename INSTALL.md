@@ -5,11 +5,11 @@
 | Mac | Download |
 |---|---|
 | Apple Silicon (M1/M2/M3/M4) | `SnapForge-x.x.x-arm64.dmg` |
-| Intel Mac | `SnapForge-x.x.x-x64.dmg` |
+| Intel Mac | `SnapForge-x.x.x.dmg` |
 
 Not sure which you have? → Apple menu → **About This Mac**.  
 If it says "Apple M1/M2/M3/M4" → download **arm64**.  
-If it says "Intel Core i5/i7/i9" → download **x64**.
+If it says "Intel Core i5/i7/i9" → download the plain `.dmg`.
 
 ---
 
@@ -23,20 +23,40 @@ If it says "Intel Core i5/i7/i9" → download **x64**.
 
 ## ⚠️ First Launch — Gatekeeper Warning
 
-Because SnapForge is currently in **unsigned beta**, macOS will block the first launch with:
+Because SnapForge is currently in **beta** and not yet registered with Apple, macOS will show a warning on first launch.
 
-> *"SnapForge can't be opened because Apple cannot check it for malicious software."*
+### What you'll see
 
-**To open it anyway (one-time only):**
+> *"SnapForge" is an app downloaded from the Internet. Are you sure you want to open it?*
 
+**To open it:**
 1. Open **Finder** → **Applications**
 2. Find **SnapForge**
-3. **Right-click** (or Control-click) on it → choose **Open**
-4. Click **Open** in the dialog that appears
+3. **Right-click** (or Control-click) → **Open**
+4. Click **Open** in the dialog
 
-After doing this once, SnapForge will open normally forever after.
+After doing this once, SnapForge opens normally forever.
 
-> **Note:** This warning is standard for any app distributed outside the Mac App Store that isn't yet code-signed. It does NOT mean the app is unsafe. The final release will be signed and notarized, removing this warning entirely.
+---
+
+## 🛠 If you see "SnapForge is damaged and can't be opened"
+
+This happens on some macOS versions when the quarantine flag is applied to the download. Fix it with one Terminal command:
+
+1. Open **Terminal** (Spotlight → type "Terminal" → press Enter)
+2. Paste this command and press Enter:
+
+```
+xattr -cr /Applications/SnapForge.app
+```
+
+3. Try launching SnapForge again — it will open normally.
+
+> If you haven't moved SnapForge to Applications yet, run this instead:
+> ```
+> xattr -cr ~/Downloads/SnapForge-*.dmg
+> ```
+> Then re-open the DMG and drag to Applications.
 
 ---
 

@@ -32,11 +32,17 @@ module.exports = {
     icon: 'resources/icon.icns',
     category: 'public.app-category.utilities',
 
-    // Hardened runtime is required ONLY for notarization.
-    // Since we are not code-signing in CI, disable it to prevent
-    // codesign failures on the runner.
-    hardenedRuntime: false,
+    // identity: null → ad-hoc self-signing (uses macOS built-in '-' identity).
+    // This prevents the "damaged and can't be opened" error that fully unsigned
+    // apps get on macOS 13+. Testers will see the softer "unidentified developer"
+    // warning instead, which IS bypassable via right-click → Open.
+    //
+    // When you have an Apple Developer account, remove identity: null and add
+    // CSC_LINK + CSC_KEY_PASSWORD secrets for full notarization.
+    identity: null,
+    hardenedRuntime: true,
     gatekeeperAssess: false,
+    entitlementsInherit: 'build/entitlements.mac.plist',
   },
 
   // ── DMG appearance ─────────────────────────────────────
