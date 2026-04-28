@@ -61,9 +61,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Code signing disabled — testers use right-click → Open on first launch.
           # When you get an Apple Developer account, add CSC_LINK + CSC_KEY_PASSWORD
-          # secrets and remove these two lines to enable signing + notarization.
+          # secrets and remove this line to enable signing + notarization.
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          CSC_LINK: ''
         run: npx electron-builder --mac --arm64 --config electron-builder.config.js
 
       # ── 6. Package x64 (Intel) DMG + ZIP ─────────────────────────────────────
@@ -71,8 +70,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          CSC_LINK: ''
         run: npx electron-builder --mac --x64 --config electron-builder.config.js
+
 
       # ── 7. Verify artifacts exist ─────────────────────────────────────────────
       - name: List built artifacts
