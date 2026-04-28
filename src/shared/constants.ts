@@ -3,7 +3,7 @@
  */
 
 export const APP_NAME = 'SnapForge';
-export const APP_VERSION = '1.0.4';
+export const APP_VERSION = '1.0.5';
 
 /** IPC channel names — single source of truth to avoid typos */
 export const IPC = {

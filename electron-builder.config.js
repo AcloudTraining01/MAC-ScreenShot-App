@@ -16,36 +16,35 @@ module.exports = {
   ],
 
   // Extra resources copied verbatim into Contents/Resources/
-  // (accessible at runtime via process.resourcesPath)
   extraResources: [
     { from: 'resources/trayIconTemplate.png',    to: 'trayIconTemplate.png' },
     { from: 'resources/trayIconTemplate@2x.png', to: 'trayIconTemplate@2x.png' },
   ],
 
-  // ── macOS ──────────────────────────────────────────────
+  // ── macOS ──────────────────────────────────────────────────────────────────
   mac: {
-    // arch is passed via CLI flag in CI: --arm64 or --x64
+    // --universal flag in CI merges arm64 + x64 into a single fat binary.
+    // Works natively on Apple Silicon AND Intel Macs without Rosetta.
     target: [
-      { target: 'dmg' },
-      { target: 'zip' },
+      { target: 'dmg',  arch: ['universal'] },
+      { target: 'zip',  arch: ['universal'] },
     ],
     icon: 'resources/icon.icns',
     category: 'public.app-category.utilities',
 
-    // identity: null → ad-hoc self-signing (uses macOS built-in '-' identity).
-    // This prevents the "damaged and can't be opened" error that fully unsigned
-    // apps get on macOS 13+. Testers will see the softer "unidentified developer"
-    // warning instead, which IS bypassable via right-click → Open.
+    // identity: null → ad-hoc self-signing using macOS built-in '-' identity.
+    // Prevents the hard "damaged and can't be opened" error on macOS 13+.
+    // Testers see "unidentified developer" instead → bypassable via right-click → Open.
     //
-    // When you have an Apple Developer account, remove identity: null and add
-    // CSC_LINK + CSC_KEY_PASSWORD secrets for full notarization.
+    // To enable full notarization: remove identity: null and add
+    // CSC_LINK + CSC_KEY_PASSWORD GitHub secrets (requires Apple Developer account).
     identity: null,
     hardenedRuntime: true,
     gatekeeperAssess: false,
     entitlementsInherit: 'build/entitlements.mac.plist',
   },
 
-  // ── DMG appearance ─────────────────────────────────────
+  // ── DMG appearance ─────────────────────────────────────────────────────────
   dmg: {
     sign: false,
     title: '${productName} ${version}',
@@ -56,7 +55,7 @@ module.exports = {
     window: { width: 540, height: 380 },
   },
 
-  // ── Auto-update via GitHub Releases ────────────────────
+  // ── Auto-update via GitHub Releases ────────────────────────────────────────
   publish: {
     provider: 'github',
     owner: 'AcloudTraining01',

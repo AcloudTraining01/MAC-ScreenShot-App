@@ -2,14 +2,13 @@
 
 ## Download
 
-| Mac | Download |
-|---|---|
-| Apple Silicon (M1/M2/M3/M4) | `SnapForge-x.x.x-arm64.dmg` |
-| Intel Mac | `SnapForge-x.x.x.dmg` |
+There is **one DMG for all Macs** — it works natively on both Apple Silicon and Intel.
 
-Not sure which you have? → Apple menu → **About This Mac**.  
-If it says "Apple M1/M2/M3/M4" → download **arm64**.  
-If it says "Intel Core i5/i7/i9" → download the plain `.dmg`.
+| File | Works on |
+|---|---|
+| `SnapForge-x.x.x-universal.dmg` | ✅ Apple Silicon (M1/M2/M3/M4) + ✅ Intel |
+
+> Download from: https://github.com/AcloudTraining01/MAC-ScreenShot-App/releases/latest
 
 ---
 
@@ -23,13 +22,11 @@ If it says "Intel Core i5/i7/i9" → download the plain `.dmg`.
 
 ## ⚠️ First Launch — Gatekeeper Warning
 
-Because SnapForge is currently in **beta** and not yet registered with Apple, macOS will show a warning on first launch.
-
-### What you'll see
+Because SnapForge is in **beta** and not yet registered with Apple, macOS will warn you on first launch:
 
 > *"SnapForge" is an app downloaded from the Internet. Are you sure you want to open it?*
 
-**To open it:**
+**To open it (one-time only):**
 1. Open **Finder** → **Applications**
 2. Find **SnapForge**
 3. **Right-click** (or Control-click) → **Open**
@@ -41,22 +38,13 @@ After doing this once, SnapForge opens normally forever.
 
 ## 🛠 If you see "SnapForge is damaged and can't be opened"
 
-This happens on some macOS versions when the quarantine flag is applied to the download. Fix it with one Terminal command:
+Run this in Terminal:
 
-1. Open **Terminal** (Spotlight → type "Terminal" → press Enter)
-2. Paste this command and press Enter:
-
-```
+```bash
 xattr -cr /Applications/SnapForge.app
 ```
 
-3. Try launching SnapForge again — it will open normally.
-
-> If you haven't moved SnapForge to Applications yet, run this instead:
-> ```
-> xattr -cr ~/Downloads/SnapForge-*.dmg
-> ```
-> Then re-open the DMG and drag to Applications.
+Then try launching again.
 
 ---
 

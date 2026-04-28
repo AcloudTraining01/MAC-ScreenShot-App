@@ -2,13 +2,8 @@ name: Build macOS Installer
 
 # ── Triggers ──────────────────────────────────────────────────────────────────
 #
-#  1. Automatically when a GitHub Release is published (the normal flow):
-#       git tag v1.x.x && git push origin v1.x.x
-#       → create release in GitHub UI → workflow fires → DMGs attached
-#
-#  2. Manually from Actions → "Run workflow" (useful for re-running on an
-#     existing release, or for testing without a new tag):
-#       Select the branch + optionally specify a release tag to attach files to
+#  1. Automatically when a GitHub Release is published
+#  2. Manually from Actions tab — specify a release tag to attach the DMG to
 #
 on:
   release:
@@ -17,21 +12,20 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release tag to attach DMGs to (e.g. v1.0.3). Leave blank to skip upload.'
+        description: 'Release tag to attach DMG to (e.g. v1.0.5). Leave blank to skip upload.'
         required: false
         default: ''
 
 # ── Permissions ───────────────────────────────────────────────────────────────
 permissions:
-  contents: write   # needed by softprops/action-gh-release to upload assets
+  contents: write
 
 # ── Job ───────────────────────────────────────────────────────────────────────
 jobs:
   build-macos:
-    name: Build macOS DMGs (arm64 + x64)
-    runs-on: macos-latest
+    name: Build macOS Universal DMG
+    runs-on: macos-latest   # Apple Silicon runner (arm64)
 
-    # Resolve the effective tag once so every step can reference it
     env:
       RELEASE_TAG: ${{ github.event_name == 'release' && github.ref_name || inputs.tag_name }}
 
@@ -55,57 +49,39 @@ jobs:
       - name: Build (electron-vite)
         run: npm run build
 
-      # ── 5. Package arm64 DMG + ZIP ────────────────────────────────────────────
-      - name: Package arm64
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Code signing disabled — testers use right-click → Open on first launch.
-          # When you get an Apple Developer account, add CSC_LINK + CSC_KEY_PASSWORD
-          # secrets and remove this line to enable signing + notarization.
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npx electron-builder --mac --arm64 --config electron-builder.config.js
-
-      # ── 6. Package x64 (Intel) DMG + ZIP ─────────────────────────────────────
-      - name: Package x64
+      # ── 5. Package Universal DMG + ZIP ────────────────────────────────────────
+      #    --universal merges arm64 + x64 Electron binaries into a single fat binary.
+      #    Works natively on Apple Silicon AND Intel without Rosetta.
+      #    identity: null in electron-builder.config.js provides ad-hoc self-signing
+      #    which prevents the hard "damaged" error on macOS 13+.
+      - name: Package Universal DMG
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npx electron-builder --mac --x64 --config electron-builder.config.js
+        run: npx electron-builder --mac --universal --config electron-builder.config.js
 
-
-      # ── 7. Verify artifacts exist ─────────────────────────────────────────────
+      # ── 6. Verify artifacts ───────────────────────────────────────────────────
       - name: List built artifacts
         run: |
-          echo "=== Release directory ==="
-          find release -type f \( -name "*.dmg" -o -name "*.zip" -o -name "*.blockmap" -o -name "*.yml" \) | sort
+          echo "=== Built files ==="
+          find release -type f \( -name "*.dmg" -o -name "*.zip" -o -name "*.yml" -o -name "*.blockmap" \) | sort
           echo ""
           echo "=== DMG sizes ==="
           find release -name "*.dmg" -exec du -sh {} \;
 
-      # ── 8. Upload arm64 DMG ───────────────────────────────────────────────────
-      - name: Upload arm64 DMG
+      # ── 7. Upload Universal DMG ───────────────────────────────────────────────
+      - name: Upload Universal DMG
         if: env.RELEASE_TAG != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          files: release/**/*arm64*.dmg
+          files: release/**/*.dmg
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 9. Upload x64 DMG ─────────────────────────────────────────────────────
-      - name: Upload x64 DMG
-        if: env.RELEASE_TAG != ''
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          files: release/**/*x64*.dmg
-          fail_on_unmatched_files: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # ── 10. Upload ZIP files (electron auto-updater) ──────────────────────────
-      - name: Upload ZIPs
+      # ── 8. Upload ZIP (electron auto-updater) ─────────────────────────────────
+      - name: Upload ZIP
         if: env.RELEASE_TAG != ''
         uses: softprops/action-gh-release@v2
         with:
@@ -115,7 +91,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 11. Upload update metadata (electron auto-updater) ────────────────────
+      # ── 9. Upload update metadata (electron auto-updater) ────────────────────
       - name: Upload update metadata
         if: env.RELEASE_TAG != ''
         uses: softprops/action-gh-release@v2
@@ -128,12 +104,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 12. Always save artifacts to Actions (even if no release tag) ─────────
-      #    Useful for inspecting DMGs built from workflow_dispatch without a tag
-      - name: Save artifacts to Actions run
+      # ── 10. Always save artifacts to this Actions run ─────────────────────────
+      - name: Save artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: snapforge-macos-dmgs
+          name: snapforge-macos-universal
           retention-days: 14
           path: |
             release/**/*.dmg
