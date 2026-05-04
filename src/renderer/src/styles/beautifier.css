@@ -1,0 +1,273 @@
+/* ── Beautifier Panel ─────────────────────────────────── */
+
+.beautifier-root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 340px;
+}
+
+.beautifier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.beautifier-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+}
+
+/* ── Live Preview ──────────────────────────────────────── */
+.beautifier-preview-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 130px;
+  background: var(--bg-translucent);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.beautifier-preview-canvas {
+  border-radius: 6px;
+  max-width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+  display: block;
+  transition: opacity 0.2s ease;
+}
+
+.beautifier-preview-canvas.rendering {
+  opacity: 0.4;
+}
+
+.beautifier-preview-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.beautifier-preview-spinner::after {
+  content: '';
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid var(--btn-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Preset Grid ───────────────────────────────────────── */
+.beautifier-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.beautifier-preset-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1.5px solid var(--btn-border);
+  background: var(--btn-bg);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  text-align: left;
+  width: 100%;
+}
+
+.beautifier-preset-btn:hover {
+  background: var(--btn-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+
+.beautifier-preset-btn:active {
+  transform: scale(0.97);
+}
+
+.beautifier-preset-btn.selected {
+  border-color: var(--accent);
+  background: var(--btn-active);
+  box-shadow: 0 0 0 1px var(--accent), 0 3px 10px rgba(0, 122, 255, 0.15);
+}
+
+.beautifier-preset-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12);
+}
+
+.beautifier-preset-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Controls ──────────────────────────────────────────── */
+.beautifier-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-translucent);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.beautifier-control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.beautifier-control-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  width: 52px;
+  flex-shrink: 0;
+}
+
+.beautifier-slider {
+  flex: 1;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--btn-border);
+  accent-color: var(--accent);
+  cursor: pointer;
+  outline: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.beautifier-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,122,255,0.4);
+  transition: transform 0.15s;
+}
+
+.beautifier-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.beautifier-control-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  width: 38px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Toggle Switch ─────────────────────────────────────── */
+.beautifier-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.beautifier-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+}
+
+.beautifier-toggle-track {
+  display: block;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--btn-border);
+  transition: background 0.2s ease;
+  position: relative;
+}
+
+.beautifier-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.beautifier-toggle input:checked + .beautifier-toggle-track {
+  background: var(--accent);
+}
+
+.beautifier-toggle input:checked + .beautifier-toggle-track::after {
+  transform: translateX(16px);
+}
+
+/* ── Apply Button ──────────────────────────────────────── */
+.beautifier-apply-btn {
+  width: 100%;
+  padding: 11px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.35);
+  letter-spacing: -0.01em;
+}
+
+.beautifier-apply-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 122, 255, 0.45);
+}
+
+.beautifier-apply-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+}
+
+.beautifier-apply-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

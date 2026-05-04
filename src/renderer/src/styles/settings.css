@@ -1,0 +1,476 @@
+/* ─── Settings Window ──────────────────────────────────── */
+
+.settings-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-solid);
+  color: var(--text-main);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── Header ── */
+.settings-header {
+  flex-shrink: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--bg-translucent);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border-subtle);
+  -webkit-app-region: drag;
+  gap: 16px;
+}
+
+.settings-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.settings-version {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+
+.settings-close-btn {
+  background: var(--btn-bg) !important;
+  border: 1px solid var(--btn-border) !important;
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 !important;
+  transition: all 0.15s;
+  box-shadow: none !important;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.settings-close-btn:hover {
+  background: var(--danger-bg) !important;
+  border-color: var(--danger-hover) !important;
+  color: var(--danger-color);
+  transform: none;
+  box-shadow: none !important;
+}
+
+/* ── Layout: Sidebar + Content ── */
+.settings-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Sidebar Navigation ── */
+.settings-sidebar {
+  width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-translucent);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  box-shadow: none !important;
+}
+
+.settings-nav-item:hover {
+  background: var(--btn-hover) !important;
+  color: var(--text-main);
+  transform: none;
+  box-shadow: none !important;
+}
+
+.settings-nav-item.active {
+  background: var(--btn-active) !important;
+  color: var(--text-main);
+  font-weight: 600;
+  box-shadow: none !important;
+}
+
+.settings-nav-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Content Panel ── */
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 28px 32px;
+  min-width: 0;
+}
+
+.settings-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: var(--btn-border);
+  border-radius: 3px;
+}
+
+/* ── Section ── */
+.settings-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 16px 0;
+}
+
+.settings-group {
+  background: var(--btn-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+/* ── Row ── */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.12s ease;
+  min-height: 56px;
+}
+
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-row:hover {
+  background: var(--btn-hover);
+}
+
+.settings-row-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.settings-row-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.settings-row-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Toggle Switch ── */
+.settings-toggle {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  cursor: pointer;
+}
+
+.settings-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 13px;
+  background: var(--btn-border);
+  transition: background 0.2s ease;
+}
+
+.settings-toggle input:checked + .toggle-track {
+  background: var(--accent);
+}
+
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.settings-toggle input:checked + .toggle-track::after {
+  transform: translateX(18px);
+}
+
+/* ── Hotkey Input ── */
+.hotkey-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hotkey-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text-main);
+  min-width: 160px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.hotkey-display:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15);
+}
+
+.hotkey-display.recording {
+  border-color: var(--accent);
+  background: rgba(0, 122, 255, 0.08);
+  animation: pulse-border 1s ease infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15); }
+  50%       { box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3); }
+}
+
+.hotkey-key {
+  background: var(--panel-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hotkey-record-hint {
+  font-size: 11px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* ── Select Dropdown ── */
+.settings-select {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 8px;
+  padding: 6px 28px 6px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-main);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  min-width: 130px;
+}
+
+.settings-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15);
+}
+
+/* ── Path Input ── */
+.settings-path-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-path-display {
+  flex: 1;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-family: 'SF Mono', monospace;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  cursor: default;
+}
+
+.settings-path-btn {
+  padding: 6px 14px !important;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Pro Badge ── */
+.pro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: linear-gradient(135deg, hsl(48, 100%, 52%), hsl(36, 100%, 52%));
+  color: #000;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* ── Disabled row (Pro-gated) ── */
+.settings-row.pro-locked {
+  opacity: 0.65;
+}
+
+.settings-row.pro-locked .settings-toggle {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Save / Status Bar ── */
+.settings-footer {
+  flex-shrink: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 20px;
+  gap: 12px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-translucent);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.settings-save-status {
+  font-size: 12px;
+  color: var(--success-color);
+  animation: fadeIn 0.2s ease;
+}
+
+/* ── About Tab ── */
+.settings-about {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 0 20px;
+  text-align: center;
+}
+
+.about-logo {
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.about-name {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.about-tagline {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.about-version-badge {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-family: 'SF Mono', monospace;
+  color: var(--text-muted);
+}
+
+.about-links {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.about-link-btn {
+  padding: 7px 18px !important;
+  font-size: 12px;
+}
