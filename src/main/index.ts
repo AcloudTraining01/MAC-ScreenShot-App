@@ -528,6 +528,13 @@ app.whenReady().then(() => {
   platform.configureGPU();
   platform.hideDockIcon();
 
+  // ── Check & fix screen recording permissions (macOS stale TCC) ──────────
+  if (platform.checkAndFixPermissions) {
+    platform.checkAndFixPermissions().catch((err) => {
+      console.error('[Startup] Permission check failed:', err);
+    });
+  }
+
   // ── Load settings & wire hotkeys ──────────────────────────────────────────
   const currentSettings = loadSettings();
   applyAutoLaunch(currentSettings);

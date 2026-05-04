@@ -50,4 +50,12 @@ export interface PlatformAdapter {
    * Windows → Electron desktopCapturer + custom overlay (Phase 1 port task)
    */
   captureInteractive(): Promise<string | null>;
+
+  // ── Permission helpers ──────────────────────────────────────────────────
+  /**
+   * Check and fix platform-specific capture permissions on startup.
+   * On macOS this detects stale TCC entries and resets them.
+   * Optional — not all platforms need this.
+   */
+  checkAndFixPermissions?(): Promise<void>;
 }

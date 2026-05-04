@@ -44,19 +44,21 @@ module.exports = async function afterSign(context) {
     { stdio: 'inherit' }
   );
 
-  console.log('[afterSign] Done. Verifying entitlements...');
+  console.log('[afterSign] Done. Verifying code signature...');
 
   try {
     const result = execSync(
       `codesign -d --entitlements - "${appPath}/Contents/MacOS/${appName}" 2>&1`,
       { encoding: 'utf8' }
     );
-    const hasScreenRecording = result.includes('device.screen-recording');
+    const hasJIT = result.includes('allow-jit');
     console.log(
-      hasScreenRecording
-        ? '[afterSign] ✓ com.apple.security.device.screen-recording is embedded.'
-        : '[afterSign] ✗ WARNING: screen-recording entitlement not found in binary!'
+      hasJIT
+        ? '[afterSign] ✓ Entitlements are properly embedded (allow-jit found).'
+        : '[afterSign] ✗ WARNING: entitlements may not be embedded correctly!'
     );
+    // Note: screen-recording entitlement is intentionally omitted.
+    // We use the system `screencapture` binary which handles its own TCC access.
   } catch {
     // Non-fatal — verification is informational only
   }

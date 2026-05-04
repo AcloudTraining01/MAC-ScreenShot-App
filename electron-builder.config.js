@@ -47,12 +47,9 @@ module.exports = {
     // is embedded in every binary that participates in screen capture.
     entitlements: 'build/entitlements.mac.plist',
     entitlementsInherit: 'build/entitlements.mac.plist',
-    // extendInfo injects keys into the app's Info.plist at build time.
-    // NSScreenCaptureUsageDescription is shown in the TCC permission dialog.
-    extendInfo: {
-      NSScreenCaptureUsageDescription:
-        'SnapForge needs screen recording access to capture screenshots.',
-    },
+    // NOTE: NSScreenCaptureUsageDescription is intentionally omitted.
+    // We use the system `screencapture` binary for capture, so the app
+    // itself doesn't need to be registered in the TCC screen-recording list.
   },
 
   // ── Post-sign hook ─────────────────────────────────────────────────────────

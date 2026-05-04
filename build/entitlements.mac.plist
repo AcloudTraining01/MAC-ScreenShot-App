@@ -11,9 +11,12 @@
     <!-- Required for loading third-party libraries (Tesseract, etc.) -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
-    <!-- Required for screen recording / screenshot capture -->
-    <key>com.apple.security.device.screen-recording</key>
-    <true/>
+    <!-- NOTE: com.apple.security.device.screen-recording is intentionally
+         omitted.  We use the system `screencapture` binary for capture, which
+         handles its own TCC access.  Declaring the entitlement here would
+         cause macOS to register SnapForge in the Screen Recording privacy
+         list and trigger permission prompts that become stale on ad-hoc
+         rebuilds. -->
     <!-- Network access for OCR model downloads -->
     <key>com.apple.security.network.client</key>
     <true/>
