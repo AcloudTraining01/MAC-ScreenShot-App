@@ -5,12 +5,25 @@
  * environment, so a developer without a certificate can still run
  * `npm run build:mac` and get a testable (ad-hoc signed) app.
  *
- * CI needs: APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID,
- *           CSC_LINK (base64 .p12), CSC_KEY_PASSWORD.
+ * electron-builder does not take credentials as config — it reads them from the
+ * environment and accepts any one of three sets. `notarize` itself is only an
+ * on/off switch, so passing an object here silently does the wrong thing.
+ *
+ * Preferred: App Store Connect API key. It is revocable, scoped to exactly this
+ * purpose, and never involves the Apple account password.
+ * See docs/CODE_SIGNING.md for how to obtain each set.
  */
-const notarizeCredentialsPresent = Boolean(
+const hasApiKeyCreds = Boolean(
+  process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER
+);
+const hasAppleIdCreds = Boolean(
   process.env.APPLE_ID && process.env.APPLE_APP_SPECIFIC_PASSWORD && process.env.APPLE_TEAM_ID
 );
+const hasKeychainCreds = Boolean(
+  process.env.APPLE_KEYCHAIN && process.env.APPLE_KEYCHAIN_PROFILE
+);
+
+const notarizeCredentialsPresent = hasApiKeyCreds || hasAppleIdCreds || hasKeychainCreds;
 
 module.exports = {
   appId: 'com.snapforge.app',
@@ -84,7 +97,10 @@ module.exports = {
     entitlements: 'build/entitlements.mac.plist',
     entitlementsInherit: 'build/entitlements.mac.plist',
 
-    notarize: notarizeCredentialsPresent ? { teamId: process.env.APPLE_TEAM_ID } : false,
+    // Boolean only. Credentials come from the environment (see above); an
+    // object here is not the documented shape and would not do what it looks
+    // like it does.
+    notarize: notarizeCredentialsPresent,
 
     /**
      * TCC prompt strings.

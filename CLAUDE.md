@@ -346,10 +346,11 @@ From the **original plan**:
 
 From the **study plan**:
 - Everything in Phases 1–7: the Swift recorder, whisper, Kokoro, ffmpeg, embeddings, Drive
-- Apple Developer ID certificate — CI is wired for it but needs five repository secrets
-  (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`,
-  `APPLE_TEAM_ID`). Until then builds are ad-hoc and the `xattr -cr` instructions in
-  `INSTALL.md` still stand.
+- Apple Developer ID certificate — CI is wired for it but needs five repository secrets:
+  `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY_P8`, `APPLE_API_KEY_ID`,
+  `APPLE_API_ISSUER`. Step-by-step setup is in
+  [`docs/CODE_SIGNING.md`](docs/CODE_SIGNING.md). Until then builds are ad-hoc and the
+  `xattr -cr` instructions in `INSTALL.md` still stand.
 
 **Open decisions needing the owner:**
 - Bundle size: models would push the DMG toward ~1 GB. Preference is fetch-on-first-use.
