@@ -20,6 +20,7 @@ import { tmpdir, homedir } from 'os';
 import { join } from 'path';
 import { existsSync, readFileSync, unlinkSync, statSync, writeFileSync } from 'fs';
 import type { PlatformAdapter } from './platform.types';
+import { APP_BUNDLE_ID } from '../../shared/constants';
 
 export class MacPlatformAdapter implements PlatformAdapter {
   readonly name = 'macOS';
@@ -111,21 +112,28 @@ export class MacPlatformAdapter implements PlatformAdapter {
 
   /**
    * Reset SnapForge's stale TCC entry so macOS will prompt cleanly on next use.
-   * Uses `tccutil` which is the Apple-sanctioned way to reset entries.
+   * Uses `tccutil`, which is the Apple-sanctioned way to reset entries.
+   *
+   * Scoped to our bundle id and never widened. `tccutil reset ScreenCapture`
+   * with no bundle id revokes screen-recording for *every* app on the machine —
+   * Zoom, Teams, OBS, the lot — which is far worse than the problem it would be
+   * papering over. If the scoped reset fails, we surface it and let the user
+   * fix the entry by hand.
+   *
+   * With a stable Developer ID signature this path should effectively never
+   * run: staleness comes from ad-hoc signing changing the code hash on every
+   * rebuild. It remains for unsigned local development builds.
    */
   private _resetTCCEntry(): void {
     try {
-      execSync('tccutil reset ScreenCapture com.snapforge.app', { timeout: 5000 });
-      console.log('[Platform/mac] TCC ScreenCapture entry reset for com.snapforge.app');
+      execSync(`tccutil reset ScreenCapture ${APP_BUNDLE_ID}`, { timeout: 5000 });
+      console.log(`[Platform/mac] TCC ScreenCapture entry reset for ${APP_BUNDLE_ID}`);
     } catch (err) {
-      console.error('[Platform/mac] tccutil reset failed:', err);
-      // Fallback: try resetting all screen capture entries
-      try {
-        execSync('tccutil reset ScreenCapture', { timeout: 5000 });
-        console.log('[Platform/mac] TCC ScreenCapture reset (all apps)');
-      } catch (err2) {
-        console.error('[Platform/mac] tccutil reset (all) failed:', err2);
-      }
+      console.error(
+        '[Platform/mac] Scoped tccutil reset failed. Not falling back to a global ' +
+          'reset — that would revoke screen recording for every app on this Mac.',
+        err
+      );
     }
   }
 

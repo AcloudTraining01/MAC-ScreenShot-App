@@ -11,9 +11,14 @@
     "build:mac": "npm run build && electron-builder --mac --config electron-builder.config.js",
     "build:win": "npm run build && electron-builder --win --config electron-builder.config.js",
     "publish:mac": "npm run build && electron-builder --mac --publish always --config electron-builder.config.js",
-    "preview": "env -u ELECTRON_RUN_AS_NODE electron-vite preview"
+    "preview": "env -u ELECTRON_RUN_AS_NODE electron-vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.116.0",
+    "better-sqlite3": "^13.0.3",
     "fabric": "^7.2.0",
     "lucide-react": "^0.358.0",
     "react": "^18.2.0",
@@ -23,14 +28,16 @@
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^1.0.1",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20.11.20",
     "@types/react": "^18.2.58",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
-    "electron": "^33.4.11",
-    "electron-builder": "^25.1.8",
-    "electron-vite": "^2.3.0",
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
     "typescript": "^5.3.3",
-    "vite": "^5.1.4"
+    "vite": "^5.1.4",
+    "vitest": "^4.1.10"
   }
 }

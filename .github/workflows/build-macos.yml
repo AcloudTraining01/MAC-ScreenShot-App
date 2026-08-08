@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release tag to attach DMG to (e.g. v1.0.5). Leave blank to skip upload.'
+        description: 'Release tag to attach DMG to (e.g. v2.1.0). Leave blank to skip upload.'
         required: false
         default: ''
 
@@ -23,7 +23,7 @@ permissions:
 # ── Job ───────────────────────────────────────────────────────────────────────
 jobs:
   build-macos:
-    name: Build macOS Universal DMG
+    name: Build macOS DMG (arm64 + x64)
     runs-on: macos-latest   # Apple Silicon runner (arm64)
 
     env:
@@ -34,33 +34,63 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Node.js 20 ────────────────────────────────────────────────────────
-      - name: Setup Node.js 20
+      # ── 2. Node.js ───────────────────────────────────────────────────────────
+      #    Node 22+ is required: better-sqlite3 ships N-API 10 prebuilds and
+      #    refuses to load on Node 20. Matches the Node bundled with Electron 43.
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       # ── 3. Install dependencies ───────────────────────────────────────────────
       - name: Install dependencies
         run: npm ci
 
-      # ── 4. Build the JS/TS bundle ─────────────────────────────────────────────
+      # ── 4. Static checks ──────────────────────────────────────────────────────
+      #    Cheap, and catches the class of error that esbuild silently strips:
+      #    the bundler removes types without checking them, so a broken type
+      #    only surfaces at runtime unless tsc is run explicitly.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      # ── 5. Build the JS/TS bundle ─────────────────────────────────────────────
       - name: Build (electron-vite)
         run: npm run build
 
-      # ── 5. Package Universal DMG + ZIP ────────────────────────────────────────
-      #    --universal merges arm64 + x64 Electron binaries into a single fat binary.
-      #    Works natively on Apple Silicon AND Intel without Rosetta.
-      #    identity: null in electron-builder.config.js provides ad-hoc self-signing
-      #    which prevents the hard "damaged" error on macOS 13+.
-      - name: Package Universal DMG
+      # ── 6. Package DMG + ZIP for both architectures ───────────────────────────
+      #
+      #    Separate arm64 and x64 artifacts rather than a universal binary:
+      #    `lipo` is unreliable once the bundle carries native addons and (from
+      #    Phase 1) the ScreenCaptureKit recorder, whisper, and ffmpeg binaries.
+      #
+      #    Signing: if APPLE_* / CSC_* secrets are configured the build is signed
+      #    with the Developer ID and notarized. Without them electron-builder
+      #    falls back to ad-hoc signing, which still produces a runnable app but
+      #    one that Gatekeeper rejects until the user right-click → Opens it.
+      #
+      #    Required repository secrets for a notarized release:
+      #      CSC_LINK                    base64-encoded Developer ID .p12
+      #      CSC_KEY_PASSWORD            password for that .p12
+      #      APPLE_ID                    Apple Developer account email
+      #      APPLE_APP_SPECIFIC_PASSWORD app-specific password (not the account password)
+      #      APPLE_TEAM_ID               10-character team identifier
+      - name: Package DMG (arm64 + x64)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npx electron-builder --mac --universal --config electron-builder.config.js
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Only attempt certificate discovery when one was actually supplied.
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+        run: npx electron-builder --mac --arm64 --x64 --config electron-builder.config.js
 
-      # ── 6. Verify artifacts ───────────────────────────────────────────────────
+      # ── 7. Verify artifacts ───────────────────────────────────────────────────
       - name: List built artifacts
         run: |
           echo "=== Built files ==="
@@ -69,8 +99,29 @@ jobs:
           echo "=== DMG sizes ==="
           find release -name "*.dmg" -exec du -sh {} \;
 
-      # ── 7. Upload Universal DMG ───────────────────────────────────────────────
-      - name: Upload Universal DMG
+      # ── 8. Report signing status ──────────────────────────────────────────────
+      #    Notarization failures are easy to miss in a long build log, and an
+      #    unsigned release is the difference between "double-click to install"
+      #    and a support thread about `xattr -cr`.
+      - name: Verify signature and notarization
+        run: |
+          APP=$(find release -maxdepth 2 -name "SnapForge.app" | head -1)
+          if [ -z "$APP" ]; then echo "No .app found"; exit 1; fi
+          echo "=== codesign ==="
+          codesign -dvvv "$APP" 2>&1 | grep -E "Authority|Identifier|TeamIdentifier" || true
+          echo "=== entitlements ==="
+          codesign -d --entitlements - "$APP/Contents/MacOS/SnapForge" 2>&1 \
+            | grep -Eo "com\.apple\.security\.[a-z.-]+" | sort -u
+          echo "=== gatekeeper ==="
+          if spctl -a -vvv "$APP" 2>&1 | tee /dev/stderr | grep -q "accepted"; then
+            echo "✓ Gatekeeper accepted — notarized release build."
+          else
+            echo "⚠ Gatekeeper rejected — this is an ad-hoc build."
+            echo "  Users will need to right-click → Open. Configure the CSC_/APPLE_ secrets to notarize."
+          fi
+
+      # ── 9. Upload DMGs ────────────────────────────────────────────────────────
+      - name: Upload DMGs
         if: env.RELEASE_TAG != ''
         uses: softprops/action-gh-release@v2
         with:
@@ -80,7 +131,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 8. Upload ZIP (electron auto-updater) ─────────────────────────────────
+      # ── 10. Upload ZIP (electron auto-updater) ────────────────────────────────
       - name: Upload ZIP
         if: env.RELEASE_TAG != ''
         uses: softprops/action-gh-release@v2
@@ -91,7 +142,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 9. Upload update metadata (electron auto-updater) ────────────────────
+      # ── 11. Upload update metadata (electron auto-updater) ───────────────────
       - name: Upload update metadata
         if: env.RELEASE_TAG != ''
         uses: softprops/action-gh-release@v2
@@ -104,11 +155,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 10. Always save artifacts to this Actions run ─────────────────────────
+      # ── 12. Always save artifacts to this Actions run ─────────────────────────
       - name: Save artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: snapforge-macos-universal
+          name: snapforge-macos
           retention-days: 14
           path: |
             release/**/*.dmg

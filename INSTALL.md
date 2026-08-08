@@ -2,11 +2,15 @@
 
 ## Download
 
-There is **one DMG for all Macs** — it works natively on both Apple Silicon and Intel.
+Pick the DMG that matches your Mac.
 
 | File | Works on |
 |---|---|
-| `SnapForge-x.x.x-universal.dmg` | ✅ Apple Silicon (M1/M2/M3/M4) + ✅ Intel |
+| `SnapForge-x.x.x-arm64.dmg` | ✅ Apple Silicon (M1/M2/M3/M4) |
+| `SnapForge-x.x.x-x64.dmg`   | ✅ Intel |
+
+**Not sure which you have?** → Apple menu → **About This Mac**. A "Chip" line
+starting with *Apple* means arm64; a "Processor" line naming *Intel* means x64.
 
 > Download from: https://github.com/AcloudTraining01/MAC-ScreenShot-App/releases/latest
 

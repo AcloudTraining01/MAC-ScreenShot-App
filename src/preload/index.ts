@@ -1,7 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { AppSettings } from '../shared/types';
+import type { SnapForgeApi } from './api';
 
-contextBridge.exposeInMainWorld('api', {
+/**
+ * Annotated as `SnapForgeApi` on purpose: this is what makes the bridge
+ * type-safe. Adding a method to the interface without implementing it here —
+ * or implementing it with a mismatched signature — is now a compile error
+ * instead of a runtime failure in whichever window happened to call it.
+ */
+const api: SnapForgeApi = {
   // ── Preview ──
   onInitPreview: (callback: (imageUri: string) => void) => {
     const fn = (_event: any, uri: string) => callback(uri);
@@ -78,4 +85,6 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('license-changed', fn);
     return () => ipcRenderer.removeListener('license-changed', fn);
   },
-});
+};
+
+contextBridge.exposeInMainWorld('api', api);

@@ -5,6 +5,12 @@
 export const APP_NAME = 'SnapForge';
 export const APP_VERSION = '1.0.5';
 
+/**
+ * Bundle identifier. Must stay in sync with `appId` in electron-builder.config.js.
+ * Used for TCC operations, which are scoped by bundle id.
+ */
+export const APP_BUNDLE_ID = 'com.snapforge.app';
+
 /** IPC channel names — single source of truth to avoid typos */
 export const IPC = {
   // ── Capture / Preview ──
