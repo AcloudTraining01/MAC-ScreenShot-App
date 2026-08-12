@@ -31,4 +31,4 @@ function createPlatformAdapter(): PlatformAdapter {
 export const platform: PlatformAdapter = createPlatformAdapter();
 
 // Re-export the interface for type annotations
-export type { PlatformAdapter, ScreenPermissionStatus } from './platform.types';
+export type { PlatformAdapter } from './platform.types';

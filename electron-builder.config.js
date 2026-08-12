@@ -1,4 +1,30 @@
 // electron-builder.config.js
+
+/**
+ * Notarization is enabled only when Apple credentials are present in the
+ * environment, so a developer without a certificate can still run
+ * `npm run build:mac` and get a testable (ad-hoc signed) app.
+ *
+ * electron-builder does not take credentials as config — it reads them from the
+ * environment and accepts any one of three sets. `notarize` itself is only an
+ * on/off switch, so passing an object here silently does the wrong thing.
+ *
+ * Preferred: App Store Connect API key. It is revocable, scoped to exactly this
+ * purpose, and never involves the Apple account password.
+ * See docs/CODE_SIGNING.md for how to obtain each set.
+ */
+const hasApiKeyCreds = Boolean(
+  process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER
+);
+const hasAppleIdCreds = Boolean(
+  process.env.APPLE_ID && process.env.APPLE_APP_SPECIFIC_PASSWORD && process.env.APPLE_TEAM_ID
+);
+const hasKeychainCreds = Boolean(
+  process.env.APPLE_KEYCHAIN && process.env.APPLE_KEYCHAIN_PROFILE
+);
+
+const notarizeCredentialsPresent = hasApiKeyCreds || hasAppleIdCreds || hasKeychainCreds;
+
 module.exports = {
   appId: 'com.snapforge.app',
   productName: 'SnapForge',
@@ -9,10 +35,25 @@ module.exports = {
     buildResources: 'build',
   },
 
-  // Files bundled inside the asar
+  // Files bundled inside the asar. Production dependencies from package.json
+  // are copied automatically; devDependencies never are.
   files: [
     'out/**/*',
     'package.json',
+  ],
+
+  /**
+   * Native code cannot be dlopen'd from inside an asar archive — the loader
+   * needs a real path on disk. Anything matching these patterns is written to
+   * app.asar.unpacked/ and resolved from there transparently.
+   *
+   * better-sqlite3 ships N-API prebuilds and its loader probes the package
+   * directory at runtime, so the whole module is unpacked rather than just the
+   * .node file.
+   */
+  asarUnpack: [
+    '**/*.node',
+    'node_modules/better-sqlite3/**',
   ],
 
   // Extra resources copied verbatim into Contents/Resources/
@@ -23,39 +64,74 @@ module.exports = {
 
   // ── macOS ──────────────────────────────────────────────────────────────────
   mac: {
-    // --universal flag in CI merges arm64 + x64 into a single fat binary.
-    // Works natively on Apple Silicon AND Intel Macs without Rosetta.
+    /**
+     * Separate per-architecture artifacts rather than a universal binary.
+     *
+     * Universal builds merge arm64 + x64 with `lipo`, which is unreliable once
+     * a bundle contains native addons and (from Phase 1) the bundled
+     * ScreenCaptureKit recorder, whisper, and ffmpeg binaries. Two clean
+     * artifacts beat one fragile one; auto-update handles multiple arches.
+     */
     target: [
-      { target: 'dmg',  arch: ['universal'] },
-      { target: 'zip',  arch: ['universal'] },
+      { target: 'dmg', arch: ['arm64', 'x64'] },
+      { target: 'zip', arch: ['arm64', 'x64'] },
     ],
     icon: 'resources/icon.icns',
-    category: 'public.app-category.utilities',
+    category: 'public.app-category.productivity',
 
-    // identity: null → ad-hoc self-signing using macOS built-in '-' identity.
-    // Prevents the hard "damaged and can't be opened" error on macOS 13+.
-    // Testers see "unidentified developer" instead → bypassable via right-click → Open.
-    //
-    // To enable full notarization: remove identity: null and add
-    // CSC_LINK + CSC_KEY_PASSWORD GitHub secrets (requires Apple Developer account).
-    identity: null,
+    /**
+     * `identity` is intentionally not set, so electron-builder auto-discovers a
+     * Developer ID certificate from the keychain (or CSC_LINK in CI).
+     *
+     * It was previously pinned to `null`, forcing ad-hoc signing. That is what
+     * caused the stale screen-recording permissions this app kept fighting:
+     * ad-hoc signing changes the code hash on every rebuild, and macOS keys TCC
+     * grants to that hash, so every rebuild silently revoked the grant. A
+     * stable Developer ID signature fixes it permanently.
+     *
+     * Local builds with no certificate still work — electron-builder falls back
+     * to ad-hoc, and scripts/afterSign.cjs re-signs so entitlements land.
+     */
     hardenedRuntime: true,
     gatekeeperAssess: false,
-    // entitlements applies to the main SnapForge binary.
-    // entitlementsInherit applies to Helper processes.
-    // Both must point to our file so com.apple.security.device.screen-recording
-    // is embedded in every binary that participates in screen capture.
     entitlements: 'build/entitlements.mac.plist',
     entitlementsInherit: 'build/entitlements.mac.plist',
-    // NOTE: NSScreenCaptureUsageDescription is intentionally omitted.
-    // We use the system `screencapture` binary for capture, so the app
-    // itself doesn't need to be registered in the TCC screen-recording list.
+
+    // Boolean only. Credentials come from the environment (see above); an
+    // object here is not the documented shape and would not do what it looks
+    // like it does.
+    notarize: notarizeCredentialsPresent,
+
+    /**
+     * TCC prompt strings.
+     *
+     * NSMicrophoneUsageDescription is the documented key and is required — the
+     * mic prompt shows this text, and a missing key is an immediate crash on
+     * first capture.
+     *
+     * Screen Recording has no officially documented Info.plist key; macOS shows
+     * a system-supplied prompt and the real gate is the TCC database.
+     * NSScreenCaptureUsageDescription is set anyway because it is widely used,
+     * harmless, and self-documenting.
+     *
+     * NSAudioCaptureUsageDescription covers Apple's Core Audio tap API. The
+     * Phase 1 recorder takes system audio through ScreenCaptureKit, which is
+     * governed by Screen Recording instead, but this is declared so a later
+     * move to Core Audio taps does not silently produce a dead audio stream.
+     */
+    extendInfo: {
+      NSMicrophoneUsageDescription:
+        'SnapForge records your microphone so it can transcribe in-person lectures and take notes for you.',
+      NSScreenCaptureUsageDescription:
+        'SnapForge records your screen so it can capture lecture slides and generate notes from online classes.',
+      NSAudioCaptureUsageDescription:
+        'SnapForge records audio played by your computer so it can transcribe online lectures and video courses.',
+    },
   },
 
   // ── Post-sign hook ─────────────────────────────────────────────────────────
-  // Re-signs the universal binary after lipo merges arm64+x64, because the
-  // merge step invalidates signatures and electron-builder does not reliably
-  // re-embed custom entitlements on the resulting universal binary.
+  // Verifies entitlements landed, and ad-hoc signs when no Developer ID is
+  // available. Deliberately a no-op on properly signed builds.
   afterSign: 'scripts/afterSign.cjs',
 
   // ── DMG appearance ─────────────────────────────────────────────────────────

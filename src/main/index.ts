@@ -31,6 +31,8 @@ import {
   validateLicense,
   getResolvedTier,
 } from './licensing';
+import { registerMediaScheme, installMediaProtocol } from './media/protocol';
+import { openDatabase, type Db } from './storage/db';
 import type { AppSettings, LibraryEntry } from '../shared/types';
 import { IPC } from '../shared/constants';
 
@@ -39,6 +41,25 @@ let editorWindow: BrowserWindow | null = null;
 let libraryWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
 let isCapturing = false;
+
+/**
+ * Study-platform database. Opened once at startup and shared by every
+ * subsystem. Null until `app.whenReady()`, and left null if opening failed —
+ * the screenshot features must keep working even if the study database can't
+ * be created.
+ */
+let studyDb: Db | null = null;
+
+export function getStudyDb(): Db {
+  if (!studyDb) {
+    throw new Error('Study database is unavailable — check startup logs.');
+  }
+  return studyDb;
+}
+
+// Privileged scheme registration has to happen before the app is ready, so it
+// sits at module scope rather than inside whenReady().
+registerMediaScheme();
 
 // ─── Library paths ─────────────────────────────────────────────────────────
 const LIBRARY_DIR = join(homedir(), 'Pictures', 'SnapForge');
@@ -528,6 +549,18 @@ app.whenReady().then(() => {
   platform.configureGPU();
   platform.hideDockIcon();
 
+  // ── Study platform: media protocol + database ───────────────────────────
+  installMediaProtocol();
+
+  // A failure here must not take the screenshot app down with it — the study
+  // features degrade, everything else keeps working.
+  try {
+    studyDb = openDatabase();
+    console.log('[DB] study.db ready');
+  } catch (err) {
+    console.error('[DB] Failed to open study.db — study features disabled:', err);
+  }
+
   // ── Check & fix screen recording permissions (macOS stale TCC) ──────────
   if (platform.checkAndFixPermissions) {
     platform.checkAndFixPermissions().catch((err) => {
@@ -583,6 +616,17 @@ app.whenReady().then(() => {
 app.on('will-quit', () => {
   destroyTray();
   globalShortcut.unregisterAll();
+
+  // Closing checkpoints the WAL. SQLite recovers from an unclean exit anyway,
+  // but a clean close avoids leaving -wal/-shm files beside the database.
+  if (studyDb) {
+    try {
+      studyDb.close();
+      studyDb = null;
+    } catch (err) {
+      console.error('[DB] Error closing study.db:', err);
+    }
+  }
 });
 
 app.on('window-all-closed', () => {

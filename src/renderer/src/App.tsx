@@ -4,52 +4,9 @@ import EditorWindow from './components/EditorWindow';
 import LibraryWindow from './components/LibraryWindow';
 import SettingsWindow from './components/SettingsWindow';
 import OnboardingWindow from './components/OnboardingWindow';
-import type { AppSettings, LibraryEntry, LicenseValidationResult } from '../../shared/types';
 
-declare global {
-  interface Window {
-    api: {
-      // ── Preview ──
-      onInitPreview: (callback: (uri: string) => void) => () => void;
-      copyScreenshot: (uri: string) => void;
-      downloadScreenshot: (uri: string) => void;
-      closePreview: () => void;
-      // ── Editor ──
-      openEditor: (uri: string) => void;
-      onInitEditor: (callback: (uri: string) => void) => () => void;
-      copyEdited: (uri: string) => void;
-      saveEdited: (uri: string) => void;
-      closeEditor: () => void;
-      // ── Library ──
-      openLibrary: () => void;
-      getLibrary: () => Promise<LibraryEntry[]>;
-      deleteScreenshot: (id: string) => void;
-      openInEditor: (filePath: string) => void;
-      openInFinder: (filePath: string) => void;
-      closeLibrary: () => void;
-      onLibraryUpdated: (callback: () => void) => () => void;
-      updateOcrText: (id: string, ocrText: string) => void;
-      // ── Theme ──
-      getSystemTheme: () => Promise<'dark' | 'light'>;
-      onThemeChanged: (callback: (theme: string) => void) => () => void;
-      // ── Settings ──
-      getSettings: () => Promise<AppSettings>;
-      saveSettings: (settings: AppSettings) => Promise<AppSettings>;
-      onSettingsChanged: (callback: (settings: AppSettings) => void) => () => void;
-      openSettings: () => void;
-      closeSettings: () => void;
-      pickDirectory: () => Promise<string | null>;
-      // ── Onboarding ──
-      completeOnboarding: () => void;
-      skipOnboarding: () => void;
-      // ── Licensing ──
-      getTier: () => Promise<LicenseValidationResult>;
-      activateLicense: (key: string) => Promise<LicenseValidationResult>;
-      deactivateLicense: () => void;
-      onLicenseChanged: (callback: (result: LicenseValidationResult) => void) => () => void;
-    };
-  }
-}
+// `window.api` is declared once, in src/preload/api.d.ts, and augments the
+// global scope from there. Nothing to redeclare here.
 
 const App: React.FC = () => {
   const hash = window.location.hash;

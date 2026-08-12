@@ -5,22 +5,45 @@
     <!-- Required for Electron's JIT compilation -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
+
     <!-- Required for Electron's unsigned executable memory -->
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
-    <!-- Required for loading third-party libraries (Tesseract, etc.) -->
+
+    <!-- Required for loading third-party libraries: Tesseract, the
+         better-sqlite3 native addon, and (from Phase 1) the bundled
+         ScreenCaptureKit recorder and whisper binaries. -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
-    <!-- NOTE: com.apple.security.device.screen-recording is intentionally
-         omitted.  We use the system `screencapture` binary for capture, which
-         handles its own TCC access.  Declaring the entitlement here would
-         cause macOS to register SnapForge in the Screen Recording privacy
-         list and trigger permission prompts that become stale on ad-hoc
-         rebuilds. -->
-    <!-- Network access for OCR model downloads -->
+
+    <!-- Microphone, for in-person lecture recording.
+         This is the entitlement half; the user-facing prompt string is
+         NSMicrophoneUsageDescription, set via extendInfo in
+         electron-builder.config.js. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+
+    <!-- Screen recording, for the lecture recorder.
+         Restored in the study-platform work. The earlier comment here said this
+         was "intentionally omitted" to avoid stale TCC prompts, but the actual
+         cause of that staleness was ad-hoc signing: identity:null produces a
+         new code hash on every rebuild, and macOS keys screen-recording grants
+         to that hash. With a stable Developer ID signature the grant persists,
+         so the workaround is no longer needed — and capturing video is
+         impossible without this permission regardless.
+
+         Note this is a *sandbox* entitlement and is inert while the app is not
+         sandboxed (we ship hardened-runtime only). The operative gate is the
+         TCC database. It is declared here so the entitlement set is already
+         correct if the app is ever sandboxed, and to state the intent plainly. -->
+    <key>com.apple.security.device.screen-recording</key>
+    <true/>
+
+    <!-- Network access: OCR model downloads, the Anthropic API, and Google Drive -->
     <key>com.apple.security.network.client</key>
     <true/>
-    <!-- File system access for saving screenshots -->
+
+    <!-- File system access for saving screenshots and lecture recordings -->
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
     <key>com.apple.security.files.downloads.read-write</key>
